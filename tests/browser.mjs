@@ -1,0 +1,123 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFile, mkdir, writeFile} from 'node:fs/promises';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const moduleRef = process.env.PLAYWRIGHT_MODULE ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright';
+const playwright = await import(moduleRef);
+const {chromium} = playwright.default || playwright;
+const html = await readFile(resolve(root, 'index.html'));
+const content = JSON.parse(await readFile(resolve(root, 'content/reader_data.json'), 'utf8'));
+const server = createServer((req, res) => {
+  if (req.url.split('?')[0] === '/superpowers-cn/' || req.url.split('?')[0] === '/superpowers-cn/index.html') {
+    res.writeHead(200, {'Content-Type':'text/html; charset=utf-8'}); res.end(html);
+  } else { res.writeHead(404); res.end('Not found'); }
+});
+await new Promise(done => server.listen(0, '127.0.0.1', done));
+const site = `http://127.0.0.1:${server.address().port}/superpowers-cn/`;
+const evidence = resolve(root, '.impeccable/review');
+await mkdir(evidence, {recursive:true});
+const launch = {headless:true};
+if (process.env.CHROME_PATH) launch.executablePath = process.env.CHROME_PATH;
+let browser;
+const errors = [], externalRequests = [], checks = [];
+const check = (name, condition) => {assert.ok(condition, name); checks.push(name);};
+const heading = async page => page.locator('#view > h1, #view .intro h1').first().innerText();
+const hash = async (page, value) => {
+  await page.evaluate(value => {location.hash=value;}, value);
+  await page.waitForFunction(value => location.hash === value, value);
+  await page.waitForTimeout(80);
+};
+try {
+  browser = await chromium.launch(launch);
+  const context = await browser.newContext({viewport:{width:1440,height:1000},acceptDownloads:true});
+  const page = await context.newPage();
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => {
+    if (/^https?:/.test(request.url()) && !request.url().startsWith(site)) externalRequests.push(request.url());
+  });
+  await context.route(/^https?:\/\//, route => route.request().url().startsWith(site) ? route.continue() : route.abort());
+  await page.goto(site, {waitUntil:'load'});
+  check('GitHub Pages project subpath loads', (await heading(page)).includes('读懂'));
+  check('All 238 files in tree', await page.locator('.tree-file').count() === 238);
+  await hash(page, '#view=map');
+  await page.getByRole('button', {name:'Codex',exact:true}).click();
+  check('Codex path distinguishes empty hooks', (await page.locator('.map-platform-description').innerText()).includes('空对象'));
+  await hash(page, '#file=' + encodeURIComponent('skills/using-superpowers/SKILL.md'));
+  check('Chinese file and original counterpart render', await page.locator('.block .translated').count() > 0 && await page.locator('details.original').count() > 0);
+  await page.locator('details.original summary').first().click();
+  check('English source expands', await page.locator('details.original[open] code').first().isVisible());
+  await hash(page, '#file=README.md');
+  const count = await page.locator('.block').count();
+  await page.getByRole('button', {name:'继续看 15 段',exact:true}).click();
+  check('Long document loads progressively', count === 15 && await page.locator('.block').count() === 30);
+  await hash(page, '#view=search');
+  await page.locator('#global-search').fill('调试');
+  await page.waitForFunction(() => document.querySelector('.search-result'));
+  check('Chinese fulltext search finds results', await page.locator('.search-result').count() > 0);
+  check('Search preserves GitHub repository path', new URL(page.url()).pathname === '/superpowers-cn/');
+  await page.locator('#global-search').fill('description');
+  await page.waitForTimeout(250);
+  check('English fulltext search finds results', await page.locator('.search-result').count() > 0);
+  await page.locator('.search-result a').first().click();
+  check('Search result opens real source file', !(await heading(page)).includes('没有这个文件'));
+  const lateFile = content.files.find(file => file.blocks.length > 25);
+  const late = lateFile.blocks[25];
+  await hash(page, '#file=' + encodeURIComponent(lateFile.path) + '&block=' + late.id);
+  check('Deep paragraph link renders beyond initial page', await page.locator('#block-' + late.id).count() === 1);
+  for (const file of content.files) {
+    await hash(page, '#file=' + encodeURIComponent(file.path));
+    assert.ok(!(await heading(page)).includes('没有这个文件'), file.path);
+  }
+  checks.push('All 238 file routes render without broken route');
+  const image = content.files.find(file => file.kind === 'image');
+  await hash(page, '#file=' + encodeURIComponent(image.path));
+  check('Embedded PNG loads', await page.locator('.image-asset').evaluate(img => img.complete && img.naturalWidth > 0));
+  const historic = content.files.find(file => file.path.startsWith('docs/superpowers/specs/'));
+  await hash(page, '#file=' + encodeURIComponent(historic.path));
+  check('Historical specs labeled', await page.locator('.history-note').count() === 1);
+  await hash(page, '#view=workshop');
+  await page.getByRole('button', {name:'下一步',exact:true}).click();
+  check('Empty Skill form requires input', (await page.locator('#wizard-error').innerText()).length > 0);
+  await page.locator('#skill-name').fill('review-my-note');
+  await page.getByRole('button', {name:'下一步',exact:true}).click();
+  await page.locator('#skill-when').fill('当用户需要检查学习笔记时。');
+  await page.getByRole('button', {name:'下一步',exact:true}).click();
+  await page.locator('#skill-steps').fill('1. 阅读笔记。\n2. 核对来源。');
+  await page.locator('#skill-done').fill('- 事实有来源或待核实标记。');
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button', {name:'下载 SKILL.md',exact:true}).click();
+  const download = await downloaded;
+  const skill = await readFile(await download.path(), 'utf8');
+  check('Skill download is complete YAML and Chinese rules', download.suggestedFilename() === 'SKILL.md' && skill.includes('name: review-my-note') && skill.includes('核对来源') && skill.includes('## 完成标准'));
+  await hash(page, '#file=README.md');
+  await page.screenshot({path:resolve(evidence,'desktop.png'),fullPage:true});
+  const mobile = await browser.newContext({viewport:{width:390,height:844},isMobile:true,deviceScaleFactor:1});
+  const phone = await mobile.newPage();
+  phone.on('pageerror', error => errors.push(error.message));
+  await phone.goto(site + '#file=README.md', {waitUntil:'load'});
+  check('Mobile body has no horizontal overflow', await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await phone.getByRole('button', {name:'打开项目目录',exact:true}).click();
+  check('Mobile directory drawer opens', await phone.locator('#sidebar').getAttribute('aria-modal') === 'true');
+  await phone.getByRole('button', {name:'关闭项目目录',exact:true}).first().click();
+  check('Mobile directory drawer closes', await phone.locator('#menu-toggle').getAttribute('aria-expanded') === 'false');
+  await phone.screenshot({path:resolve(evidence,'mobile.png'),fullPage:true});
+  const offline = await browser.newContext({offline:true});
+  const local = await offline.newPage();
+  local.on('pageerror', error => errors.push(error.message));
+  await local.goto(pathToFileURL(resolve(root,'index.html')).href, {waitUntil:'load'});
+  check('Double-click offline HTML works', (await heading(local)).includes('读懂'));
+  await hash(local, '#view=search');
+  await local.locator('#global-search').fill('调试');
+  await local.waitForFunction(() => document.querySelector('.search-result'));
+  check('Offline search works', await local.locator('.search-result').count() > 0);
+  check('No remote runtime requests', externalRequests.length === 0);
+  check('No browser JavaScript errors', errors.length === 0);
+  await writeFile(resolve(evidence,'browser-report.json'), JSON.stringify({checks,errors,externalRequests,viewports:[{width:1440,height:1000},{width:390,height:844}]},null,2));
+  console.log(JSON.stringify({passed:checks.length,errors,externalRequests,screenshots:['desktop.png','mobile.png']}));
+} finally {
+  if (browser) await browser.close();
+  await new Promise(done => server.close(done));
+}

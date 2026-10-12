@@ -1,0 +1,509 @@
+{
+  "fixes": [
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0117",
+      "zh": "- **全局约束块**列出所有任务都必须遵守的规则，包括最低版本、依赖限制、命名和文案要求、精确数值，并逐字复制这些规则，确保后续的实现人员和审核人员都能收到。\n- **每个任务的接口块**准确说明任务接收什么、产出什么。即使实现人员只能看到自己的任务，也能了解相邻任务的接口约定。\n- **任务规模指导**把每个任务控制在值得单独开展一轮测试和审核的规模，并将环境准备、配置和文档纳入需要它们的任务。测试中，按这种方式编写的计划只需一轮修正；对照组则需要两到四轮，而且对照组最终交付的代码还包含一个实际缺陷。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0119",
+      "zh": "可视化辅助工具是智能体在对话旁启动的小型 Web 服务器。此前它完全没有身份验证，因此在共享或远程机器上，任何能访问该端口的人都可以查看你的头脑风暴内容，甚至注入事件，让智能体把它们当成你的输入。本次发布为它建立了完整的安全机制，也让它能在重启和连接中断后继续工作。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0120",
+      "zh": "- **每个会话的密钥现在保护所有访问。**智能体提供的 URL 带有一次性密钥，浏览器将它保存到仅限当前标签页的 Cookie 中。每个请求和 WebSocket 连接都必须携带这个密钥。这样既能阻止无关的本地标签页访问，也能阻止网络可达的远程主机访问，还能覆盖来源允许名单无法拦截的 DNS 重绑定情形。（解决 #1014）\n- **文件服务器始终限制在沙箱范围内。**它拒绝符号链接、以点开头的隐藏文件，以及任何越出内容目录的路径；忽略 macOS 资源分叉文件；发送常规的禁止缓存和禁止嵌入框架响应头。保存会话密钥的文件只允许文件所有者访问。\n- **仅在有帮助时才提供可视化辅助工具。**当某个问题第一次更适合展示而不是口头描述时，Skill 会用一条单独的消息提出使用它。用户拒绝后，就尊重这个决定。接受后会打开浏览器，显示第一个界面。（解决 #755）\n- **能够应对重启和不稳定的连接。**指定项目目录后，服务器重启时会沿用相同的端口和密钥，因此已打开的标签页可以直接重新连接。页面会自动重连，显示实时连接状态标记，并在服务器停止运行时显示“已暂停”遮罩。\n- **延长空闲等待时间，安全关闭。**空闲超时由 30 分钟延长到 4 小时。`stop-server.sh` 现在会先确认目标确实是自己管理的进程，再发送信号，因此机器重启后不会误杀无关的 `node` 进程。（#1703）\n- **加固 Windows 启动流程。**统一了 Shell 检测逻辑。由于 Node 无法跨 MSYS2 跟踪 POSIX 进程归属，Windows 现在依靠空闲超时来关闭服务器。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0132",
+      "zh": "- **systematic-debugging 不再强制每次会话都启用扩展思考。**此前某个列表项包含了 Claude Code 用来触发该模式的精确关键词，导致所有加载这个 Skill 的会话都悄悄开启了该开关。现在用连字符打断关键词，同时保持文字可读。（#1283，作者 @Nick Galatis）\n- **Windows 的 SessionStart 钩子不再在每次会话中打印写入错误。**现在每次 `printf` 的输出都通过 `cat`，以处理管道断开的情况，其他输出保持不变。（#1612，由 @silvertakana 报告）\n- **Windows 前台模式**会跟踪正确的进程，并在 MSYS2 上清除记录的所有者 PID。（作者 @nestorluiscamachopaz）\n- **`using-superpowers` 引导内容**不再把不存在的“debugging”列为 Skill。（由 @mhat 报告）\n- **TDD Skill**新增了测试反模式参考文档的链接。（#1532、#1529；#1474 的链接修复由 @Stable Genius 完成）\n- **`using-git-worktrees`**修正了步骤编号，并删除了过时的 Cursor 相关引用。（#1522，以及 @fuleinist 的贡献）\n- **Codex 审核 Skill**将只有内部人员才懂的玩笑替换为直白的指导。（#1531）",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0134",
+      "zh": "- **将 Superpowers 移植到新运行平台的指南**（`docs/porting-to-a-new-harness.md`）说明了每个集成都需要的三个部分，以及决定集成能否成功的一条规则：在会话开始时加载引导内容。\n- **每个 PR 和 Issue 现在都要披露它的制作方式。**包括所用模型、运行平台、版本和已安装插件；如果由人工编写，也要注明。我们会根据贡献的生成方式采用不同的评估方式。PR 的目标分支也改为 `dev`。PR 模板、全部三个 Issue 模板，以及新增的平台支持请求模板都包含这些要求。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "blockId": "b0523",
+      "zh": "- 新增完整的测试检查清单（`docs/TESTING-CHECKLIST.md`）。\n- 创建用于测试的本地插件市场配置。\n- 记录手动测试场景。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/README.kimi.md",
+      "blockId": "b0008",
+      "zh": "你也可以从这个仓库安装：",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/plans/2025-11-28-skills-improvements-from-user-feedback.md",
+      "blockId": "b0107",
+      "zh": "**为什么这种做法是错的：**\n- 模拟对象把同一个缺陷写进了测试。\n- TypeScript 无法发现内联模拟对象中的错误方法名。\n- 代码和模拟对象都错了，所以测试反而通过。\n- 使用真实对象时，程序会在运行时崩溃。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/plans/2025-11-28-skills-improvements-from-user-feedback.md",
+      "blockId": "b0113",
+      "zh": "当出现运行时错误“X is not a function”（X 不是函数），但测试仍然通过时：\n1. 检查 X 是否被模拟。\n2. 对比模拟对象的方法与接口定义的方法。\n3. 查找方法名不一致的地方。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/plans/2026-01-17-visual-brainstorming.md",
+      "blockId": "b0077",
+      "zh": "1. **服务器**位于 `lib/brainstorm-server/`：使用 Node.js，监听 HTML 文件变化并转发事件。\n2. **辅助库**会自动注入页面：捕获点击、表单和输入事件。\n3. **测试**位于 `tests/brainstorm-server/`：验证服务器行为。\n4. **Brainstorming Skill**新增可视化辅助工具章节，并引用 `visual-companion.md` 参考文档。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/porting-to-a-new-harness.md",
+      "blockId": "b0069",
+      "zh": "- **形式 A：**提供 `*-plugin/plugin.json`（参见 `.cursor-plugin/plugin.json`），包含 `name`、`version`、`description`、作者/许可证/关键词信息，以及 `\"skills\": \"./skills/\"` 和 `\"hooks\": \"./hooks/hooks-<harness>.json\"`。还需提供 `hooks-<harness>.json` 文件，注册会话开始钩子，其命令调用 `run-hook.cmd`。\n- **形式 B：**提供运行平台加载的模块（例如 `.<harness>/plugins/*.js`），以及让平台发现该模块所需的包元数据。提交到仓库的包元数据是**仓库根目录的 `package.json`**：`main` 指向 OpenCode 插件；`pi` 字段（`pi.extensions`、`pi.skills`）和 `pi-package` 关键词共同声明 pi 扩展。各运行平台的本地清单和锁文件不纳入 Git：`.opencode/.gitignore` 会排除 `node_modules`、`package.json` 和锁文件。你的运行平台的*本地*安装产物也应这样处理，避免混入仓库；但绝不能忽略仓库根目录的 `package.json`，因为它是受版本控制的权威配置来源。\n  - **构建/依赖检查。**确认运行平台如何加载模块：是直接运行源码（pi 的 `.ts` 由 `package.json` 原样引用；OpenCode 提供普通 `.js`），还是需要转译或构建？Superpowers 没有运行时依赖。pi 的 `import type { ExtensionAPI }` 能正常使用，是因为运行平台直接运行 `.ts`，在加载时提供该类型，而且仓库的 CI 从不对这个文件做类型检查，甚至没有把该导入声明为依赖。如果*你的*运行平台会对插件做类型检查或打包，这种方式就会失效：未声明的类型导入会报错。PR 规则只允许新运行平台例外引入*运行时*依赖，不包括开发或类型依赖包。遇到这种情况，应先与维护者确认方案，不要自行悄悄添加依赖。任何构建输出都不要纳入 Git，并记录构建命令。\n- **形式 C（指令文件）：**提供一个小型清单（参见 `gemini-extension.json`，包含 `name`、`description`、`version`、`contextFileName`），以及上下文文件本身（`GEMINI.md` 只是两条 `@` 引用，分别引入引导 Skill 和工具映射参考文档）。Gemini 清单没有 `skills` 字段；Gemini 会自动发现已安装扩展中附带的 `skills/` 目录。如果",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0023",
+      "zh": "运行检测命令。如果 `GIT_DIR != GIT_COMMON`，直接跳过工作树创建流程，改为执行以下步骤：\n1. 跳到创建步骤中的“运行项目初始化”（Run Project Setup）小节。`npm install` 等操作具有幂等性，重复执行不会改变预期结果；为稳妥起见，值得运行。\n2. 然后执行“验证干净基线”（Verify Clean Baseline），运行测试。\n3. 根据分支状态报告：\n   - 位于某个分支：“已经在 `<path>` 的独立工作区中，当前分支为 `<name>`。测试通过，可以开始实现。”\n   - 处于游离 HEAD：“已经在 `<path>` 的独立工作区中（游离 HEAD，由外部管理）。测试通过。注意：收尾时需要创建分支。可以开始实现。”",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0024",
+      "zh": "如果 `GIT_DIR == GIT_COMMON`，按完整的工作树创建流程继续执行，流程保持不变。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0026",
+      "zh": "更新“集成”（Integration）章节中“由谁调用”（Called by）的条目。将各条目原先针对具体场景的描述统一改为：“确保使用独立工作区（创建一个，或验证已有工作区）”。例如，`subagent-driven-development` 条目的描述由“必须：开始前建立独立工作区”改为“必须：确保使用独立工作区（创建一个，或验证已有工作区）”。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0028",
+      "zh": "在步骤 0 报告完成后，停止。不要继续执行“目录选择”（Directory Selection）或“创建步骤”（Creation Steps）。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0061",
+      "zh": "- `implementer-prompt.md`、`spec-reviewer-prompt.md`、`code-quality-reviewer-prompt.md`：子智能体提示词保持不变。\n- `executing-plans/SKILL.md`：只修改“集成”章节中的一行描述，改法与 `subagent-driven-development` 相同；所有运行时行为保持不变。\n- `dispatching-parallel-agents/SKILL.md`：不涉及工作树或收尾操作。\n- `.codex/INSTALL.md`：安装流程保持不变。\n- 收尾时的四选项菜单：在 Claude Code 和 Codex CLI 中完整保留。\n- 完整的工作树创建流程：在当前不处于工作树的环境中完整保留。\n- 子智能体的分派、审核和迭代循环：保持不变，已确认各智能体共享文件系统。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0004",
+      "zh": "Superpowers 对工作树管理有固定做法：指定路径（`.worktrees/<branch>`）、指定命令（`git worktree add`）和指定清理方式（`git worktree remove`）。同时，Claude Code、Codex App、Gemini CLI 和 Cursor 都提供原生工作树支持，各有自己的路径、生命周期管理和清理方式。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0014",
+      "zh": "用 `GIT_DIR != GIT_COMMON` 判断“我是否已经位于工作树中”，不要通过探测环境变量来识别运行平台。这是稳定的 Git 原生机制，自 2015 年发布的 Git 2.5 起就已支持；适用于所有运行平台，而且出现新平台时也无需维护这套判断逻辑。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0018",
+      "zh": "谁创建工作树，谁负责清理。如果由运行平台创建，Superpowers 就不操作它。如果由 Superpowers 通过备用的 Git 方式创建，则由 Superpowers 清理。判断规则是：工作树位于 `.worktrees/` 或 `worktrees/` 下时，归 Superpowers 管理；其他路径（如 `.claude/worktrees/`、`~/.codex/worktrees/`、`.gemini/worktrees/`，或旧版 Superpowers 的用户级全局路径）归运行平台或用户管理，保持原样。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0039",
+      "zh": "1. **明确写出工具名称。**直接列出 `EnterWorktree`、`WorktreeCreate`、`/worktree`、`--worktree`，将需要解释的判断“我有没有原生工具？”变为事实查找“我的工具列表里有没有 `EnterWorktree`？”。没有这些工具的平台上的智能体只需检查，发现不存在后继续执行步骤 1b。测试中未发现误判。\n2. **衔接用户同意与工具授权。**“用户同意创建工作树，就授权你使用这个工具”这句话直接回应了 `EnterWorktree` 的工具级限制：“仅在用户明确要求时使用”。工具说明的优先级高于 Skill 指令（Claude Code #29950），因此 Skill 必须将用户同意表述为工具要求的授权。\n3. **加入危险信号条目。**在“危险信号”（Red Flags）章节明确指出反模式：“已有原生工作树工具时仍使用 `git worktree add`，这是最常见的错误。”",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0042",
+      "zh": "没有原生工具可用时，手动创建工作树。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0043",
+      "zh": "**目录选择**（按优先级）：\n1. 查看项目的智能体指令文件（CLAUDE.md、GEMINI.md、AGENTS.md、.cursorrules 或同类文件），检查是否指定了工作树目录偏好。\n2. 检查是否已有 `.worktrees/` 或 `worktrees/` 目录，有则使用。如果两个都存在，优先使用 `.worktrees/`。\n3. 默认使用 `.worktrees/`。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0044",
+      "zh": "不再交互式询问目录选择。也不再检测或提供旧版 Superpowers 的用户级全局工作树路径。新建的手动工作树默认放在项目内，除非用户明确指定其他位置。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0050",
+      "zh": "**注意 Git 钩子：**Git 工作树不会继承主仓库的 hooks 目录。通过步骤 1b 创建工作树后，如果主仓库存在 hooks 目录，就创建符号链接，连接到该目录：",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0053",
+      "zh": "**沙箱备用方案：**如果 `git worktree add` 因权限错误失败，就将当前环境视为受限环境。跳过创建，在当前目录工作，继续执行步骤 3。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0095",
+      "zh": "这条规则适用于步骤 1b 中对目录偏好的检查。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0097",
+      "zh": "| 缺陷 | 问题 | 修复方式 | 位置 |\n|-----|---------|-----|----------|\n| #940 | 选项 2 的正文说“然后：清理工作树（步骤 5）”，但速查表说要保留。步骤 5 写着“适用于选项 1、2、4”，但“常见错误”章节又写着“仅选项 1 和 4”。 | 从选项 2 中移除清理操作。步骤 5 仅适用于选项 1 和 4。 | 收尾 Skill 的 SKILL.md |\n| #999 | 选项 1 在移除工作树前先删除分支。工作树仍引用该分支，因此 `git branch -d` 可能失败。 | 调整顺序：合并 → 验证测试 → 移除工作树 → 删除分支。任何删除操作都必须在合并成功后进行。 | 收尾 Skill 的 SKILL.md |\n| #238 | 当前工作目录位于待移除工作树内时，`git worktree remove` 会失败，却未给出明显提示。 | 增加当前工作目录检查：先用 `cd` 切换到主仓库根目录，再执行 `git worktree remove`。 | 收尾 Skill 的 SKILL.md |",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0104",
+      "zh": "**状态：**这个风险在实现过程中实际发生了。原先抽象的步骤 1a（“你了解自己的工具集”）在 Claude Code 的 6 次测试中只通过了 2 次。TDD 检查关卡按设计发挥了作用：在修改任何 Skill 文件之前就发现失败，避免了有缺陷的版本发布。三轮 REFACTOR（重构）迭代找到了根因，包括智能体优先依赖具体命令，以及工具说明中的限制覆盖了 Skill 指令。修复后，在 GREEN（通过）和 PRESSURE（压力）测试中达到 50 次测试全部通过。详见上面的步骤 1a 设计说明。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0009",
+      "zh": "- **`skills/using-superpowers/SKILL.md:22, 26`**：指令优先级列表。列表已经同时列出 CLAUDE.md、GEMINI.md 和 AGENTS.md，这样写是正确的：该章节确实在说明多平台插件中*哪些内容算作用户指令*。无需修改。\n- **历史资料和示例文件：**\n  - `skills/systematic-debugging/CREATION-LOG.md`：注明来源的路径（`~/.claude/CLAUDE.md`）是历史事实。\n  - `skills/writing-skills/examples/CLAUDE_MD_TESTING.md`：整个文件是完整示例，用来测试 CLAUDE.md 内容的不同写法。文件名、正文，以及 `testing-skills-with-subagents.md` 中对它的引用都保留。将它们统一改成泛化表述，会破坏示例的意义。\n- **平台工具相关引用**：可在阶段 D 处理：\n  - `skills/using-superpowers/SKILL.md:40`（关于 GEMINI.md 的 Gemini CLI 工具映射说明）。\n  - `skills/using-superpowers/references/gemini-tools.md`（`save_memory` 会持久保存到 GEMINI.md）。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0015",
+      "zh": "使用通用表述，不指定某一个文件名。不同运行平台读取不同文件（CLAUDE.md、AGENTS.md、GEMINI.md 等），Skill 不应假定只使用其中一种。各平台偏好的文件名应写在平台工具参考文档 `references/{codex,copilot,gemini}-tools.md` 中。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0019",
+      "zh": "括号里的说明有实际作用：它指出这个说法不仅文风不好，还会直接违反许多用户写在指令文件中的规则。“指令文件”是自然的跨平台称呼，能同时涵盖 AGENTS.md、CLAUDE.md 和 GEMINI.md，既保留原先的提醒力度，又不限定某个文件名，也不会弱化成“常见做法”。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0026",
+      "zh": "- 阅读上下文段落，确认语法和含义仍然通顺。\n- 运行 `grep -n \"CLAUDE\\.md\" <touched-file>`，确认当前有效的正文中不再有匹配项，已记录的例外除外。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0030",
+      "zh": "- 不修改 `using-superpowers/SKILL.md` 中优先级列表的顺序。调整 CLAUDE.md、GEMINI.md、AGENTS.md 的排序属于形式上的改动，不是替换内容，不在本次范围内。\n- 不重命名 `examples/CLAUDE_MD_TESTING.md`，也不修改其内容。\n- 不修改专门面向 Gemini CLI 的工具参考内容；这些是阶段 D 的候选项。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0032",
+      "zh": "本设计中写明的阶段 B 包括三次提交和三份面向非 Claude Code 平台的工具参考文档。实现时又多做了一步：提交 `8505703` 新增了第四份参考文档 `references/claude-code-tools.md`，使文档结构保持一致。这样，Claude Code 的指令文件约定和工具名称列表也与其他平台并列记录，而不再隐含在 Skill 周围的正文里。该新增内容未在本设计中预先规划，但符合设计意图。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+      "blockId": "b0010",
+      "zh": "- **平台/运行时说明**：如“在 Claude Code 中：”、安装说明、工具映射引用。（阶段 D 的候选项。）\n- **配置文件引用**：CLAUDE.md、AGENTS.md、GEMINI.md 的优先级列表，以及“项目约定放在哪里”的提示。（阶段 B。）\n- **工具名称引用**：`Skill`、`Bash`、`Read`、`Task`、`TodoWrite`。Skill 使用 Claude Code 的工具名称编写；现有的 `references/{codex,copilot,gemini}-tools.md` 文件提供名称映射。（本设计编写时原计划推迟或跳过这些修改。最终阶段 E 处理了它们：把当前有效 Skill 中的工具名称改为描述动作的表述，并围绕同一套用语统一了平台工具参考文档。）\n- **README 中的宣传文案**：如“适用于 Claude Code 的 Superpowers”、以平台命名的安装章节。（阶段 C。）\n- **历史资料**：`docs/plans/*.md`、`docs/superpowers/specs/*.md`、`CREATION-LOG.md`。这些文档有日期，记录的是特定时点的信息；改写它们就会改写历史。\n- **模型标识**：Claude Haiku、Sonnet、Opus。这些是实际产品名称。\n- **文件名/URL 引用**：`CLAUDE.md`、`claude.com`、`claude-plugin/`、`~/.claude/` 下的路径。\n- **`anthropic-best-practices.md` 文件名**：虽然会改写文件里的正文，但文件名仍保留其来源名称。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+      "blockId": "b0013",
+      "zh": "- **第二人称：“你的智能体”**。向 Skill 作者说明*其自身*运行环境时使用：\n  - “你的智能体会读取描述。”\n- **第三人称：“该智能体”“智能体”或“某个智能体”**。泛指系统行为时使用：\n  - “后续的智能体会找到你的 Skill。”\n  - “使用智能体可能会搜索的词。”\n  - “只有当某个 Skill 与当前任务相关时，智能体才会读取 SKILL.md。”",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+      "blockId": "b0029",
+      "zh": "- 运行 `grep -rn \"Claude\" <touched-paths>`。每个保留的匹配项都必须属于已记录的例外：模型名、文件名、URL、“Claude Code”平台名或历史资料。\n- 从头到尾阅读修改过的文件，确认替换没有破坏句子的流畅度、代词一致性或列表各项的表达一致性。\n- 无需运行测试，本次只修改文字。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+      "blockId": "b0031",
+      "zh": "- 在实际会话中快速阅读每个修改过的 Skill，确认没有别扭的表述。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-prose-design.md",
+      "blockId": "b0033",
+      "zh": "- 不改变行为、结构、标题（CSO→SDO 除外）、示例、代码块或 YAML 元数据区。\n- 不引入新章节、提示框或兼容性说明。\n- 编辑时不要做超出词语替换范围的文案“优化”。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-readme-design.md",
+      "blockId": "b0003",
+      "zh": "阶段 A 和 B（参见 `2026-05-05-platform-neutral-prose-design.md` 和 `2026-05-05-platform-neutral-config-refs-design.md`）已经将 README 中泛指 Claude 的文字和配置文件引用改成平台中立表述。剩余的平台倾向来自布局：README 的两处平台列表都把 Claude Code 放在最前面，其他位置也没有严格按字母排序。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-readme-design.md",
+      "blockId": "b0006",
+      "zh": "1. **快速开始的平台列表**（`README.md:7`）：列出支持的运行平台的一行链接。\n2. **安装章节顺序**（`README.md:35–152`）：各运行平台的安装小节。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-readme-design.md",
+      "blockId": "b0008",
+      "zh": "- 正文、插件市场名称、插件 ID 和 URL：现有内容在事实层面都正确。\n- Claude Code 章节的视觉占比：它包含两个小节，分别介绍 Anthropic 官方插件市场和 Superpowers 插件市场。这两种都是真实的安装途径；合并会隐藏准确的信息。\n- 每个安装内容块内部的章节标题和正文：只调整内容块的先后顺序。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-readme-design.md",
+      "blockId": "b0016",
+      "zh": "用一次不可分割的提交同时调整两处列表，因为只改其中一处，会造成快速开始与安装章节的顺序不一致。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-06-lift-drill-into-evals-design.md",
+      "blockId": "b0003",
+      "zh": "Drill 是用 Python 编写的 Skill 指令遵循情况基准测试工具，原本位于独立仓库 `obra/drill`。它会驱动真实的 tmux 会话，让一个大语言模型扮演用户，再让另一个大语言模型检查生成的会话记录，并报告每个场景是否通过。它支持 Claude Code、Codex、Gemini CLI；根据近期提交，还支持 OpenCode 和 Copilot CLI。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-06-lift-drill-into-evals-design.md",
+      "blockId": "b0004",
+      "zh": "Drill 已经是 Superpowers *事实上采用的*评测运行框架。drill 仓库中的 PRI-1397 系列提交把约 22 个 Superpowers Bash 测试迁移成了 Drill 场景。Superpowers 最近的一次提交（`a2292c5`）也明确删除了一个重复的 Bash 测试，提交说明为*“已由 Drill 的行为测试覆盖替代”*。迁移已经在推进，本设计将完成这项工作。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-06-lift-drill-into-evals-design.md",
+      "blockId": "b0005",
+      "zh": "本项工作把 Drill 迁入 Superpowers 的 `evals/` 目录，逐个文件确认 Drill 场景的覆盖范围后，删除重复的 Bash 测试，并更新文档，让贡献者能够找到新的目录结构。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-06-lift-drill-into-evals-design.md",
+      "blockId": "b0007",
+      "zh": "1. `evals/` 成为 Superpowers 的权威评测运行框架，包含完整的 Drill 源码、场景、测试数据、提示词、后端配置和测试。\n2. 逐个确认 `superpowers/tests/` 中的 Bash 测试；凡是已核实被 Drill 场景 100% 覆盖的就删除，其余保留。\n3. 明确划分并记录两个目录的职责：`tests/` 测试插件基础设施，包括 Bash、Node 和 Python 集成测试；`evals/` 通过用户扮演模型和验证模型评测大语言模型行为。\n4. 根目录相关文档（`README.md`、`CLAUDE.md`、`docs/testing.md`）将贡献者引导到正确位置。\n5. 独立的 `obra/drill` 仓库继续保留，本 PR 不修改它。待本 PR 合并后，再单独通过人工步骤归档该仓库。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-positive-instruction-redesign-design.md",
+      "blockId": "b0015",
+      "zh": "### 为什么这很重要，以及为什么确实存在不确定性",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-positive-instruction-redesign-design.md",
+      "blockId": "b0016",
+      "zh": "- 计划是工作流中**生成内容最多的产物**。模型同时有一种真实的动机：输出占位符，在长度受限时这是最省力的办法。这种激励结构，符合“禁止性指令反而明显适得其反”的那类情形。\n- 但被禁止的内容又是**彼此独立、可以识别的具体文本标记**，这符合“禁止性指令确实有效”的那类情形。\n- **这份清单还承担着其他关键作用：**Skill 的“自查”章节会引用它：“占位符扫描：在计划中搜索危险信号，即上面‘不使用占位符’章节列出的任何模式。”这些文本标记同时也是审核时的扫描清单，而在审核阶段识别问题属于已知有效的用法。直接换成正向检查清单，会破坏这处引用，也会丢掉这些有效的预警标记。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0005",
+      "zh": "审核循环次数（每次运行 2–4 轮）是不同运行之间成本差异的最大来源。大多数额外循环，是因为计划表述不清，实现人员采用了错误的理解。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0007",
+      "zh": "**降低机械性工作的成本，不降低判断质量。**每一层都必须列明哪些决策交给更便宜的模型，并证明每项都是*机械性工作*：结果可确定、可以用脚本处理，或者事后能以低成本验证。需要判断的工作仍由最高等级模型或人来完成。SDD 中明确需要判断的环节如下：",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0011",
+      "zh": "SDD 的核心主张是：**每个任务使用一个全新的子智能体，只提供精心筛选的上下文，并为每个任务单独设置检查关卡。**下面各层都必须保留这一原则。在分派阶段批量合并任务（一次分派让同一个实现子智能体处理计划中的多个任务）**与该原则相冲突**：它会破坏新上下文的独立性，也会让检查关卡变得粗糙，因此被明确排除在成本优化阶梯之外。若要获得相同的分派成本收益，同时保留核心原则，应在编写计划时调整任务规模（L1）：计划定义的任务更少、规模更合适，SDD 仍然可以为每个任务使用一个全新的子智能体。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0016",
+      "zh": "1. **指导合理划分任务规模。**当前计划会生成小到“创建 .gitignore”这样的任务，每项都要承担完整的分派和审核流程，固定开销约为 0.60–1.00 美元。新增指导：“一个任务是值得单独开展一轮测试、并值得由一位全新审核者独立把关的最小单元。将环境准备和配置步骤合并到需要它们的任务中；只在审核者能独立判断并有理由拒绝交付的边界上拆分任务。”Fractals 的计划会从 10 个任务减少到约 7 个。验证标准：分派次数下降，检查关卡仍有效，审核粒度仍能发现预先植入的缺陷。\n2. **在计划开头设置结构化的 `## Global Constraints` 章节**，记录最低版本、命名/文案规则和平台要求。目前这些要求散落在 design.md 的正文中，只有控制智能体记得粘贴，审核者才能收到。曾有违反 `go 1.26.1` 最低版本要求的实现被交付，就是因为没有人复制这项要求。固定标题让这些约束可以自动提取；`task-brief` 只需小幅修改脚本，就能自动把它们附加到每份任务说明中，完全免去控制智能体的一项职责。\n3. **每个任务设置一行 `Interfaces:`**，写明接收/产出的内容和精确接口签名。控制智能体目前在每次分派时都会重新推导跨任务接口，这是它主要且合理的“重新表述”工作；实现人员还要花费约 13 次工具调用重新了解上下文。计划编写者已经知道接口，每个任务加一行，就能把这项工作移到只需做一次的位置。\n4. **计划编写者为每个任务推荐模型等级**，按“机械处理 / 常规任务 / 判断任务”分类。对目前控制智能体在每次分派时重新做出的模型选择决策，计划编写者掌握的信息最充分；控制智能体仍保留覆盖该建议的权限。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0017",
+      "zh": "验证方式：先按指令设计原则，用微型测试检查计划编写者的输出结构，采用逐步操作说明式的测试，然后再运行完整流程。注意 2026-06-10 的测试结果：当前 Opus 无法被诱导在计划中输出*占位符*。因此，这些改动针对成本和表述歧义，而不是清理占位符。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-06-10-strict-cost-sdd-design.md",
+      "blockId": "b0018",
+      "zh": "### L2 — 控制智能体的模型等级（预计每次运行减少 4–5 美元；这是单项收益最大的措施，也需最严格的检查把关）",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/templates/case.md",
+      "blockId": "b0004",
+      "zh": "<用一个段落写明：涉及哪些会话、已知的对话轮次范围、预期结果、实际发生的情况，以及关键的可观察指标，例如实际耗时、Token 数、重复操作或某个具体的意外操作。>",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/templates/case.md",
+      "blockId": "b0018",
+      "zh": "- 查阅的来源：<绝对路径、工具、帮助信息或文档来源>\n- 提取命令或查询：<针对每个来源使用的、范围受限的命令或工具查询>\n- 目标身份的证据：<会话 ID、工作目录、时间戳、匹配内容，以及支持这些判断的记录位置>\n- 关联会话：<会话 ID、关联关系和支持记录的位置；如未找到，写“未找到”>\n- 人类消息：<记录格式，以及证明其含义的证据>\n- 注入消息和父智能体的任务分派：<记录格式，以及证明其含义的证据>\n- 助手消息：<记录格式，以及证明其含义的证据>\n- 工具调用及结果：<各自的记录格式、相互匹配方式，以及证明这些含义的证据>\n- 用量计数器：<字段、表示增量还是累计值、单位及证据；如无法获取，写“不可用”>\n- 时间信息：<字段、单位、事件边界及证据；如无法获取，写“不可用”>\n- 其他相关记录：<模型、版本、上下文压缩，或其他信息的含义及证据>\n- 尚未确定的信息：<缺失、无法访问、含义不清或不存在的信息；如没有，写“无”>",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/templates/issue.md",
+      "blockId": "b0009",
+      "zh": "<先说明问题，再给出排查结论。将 `path:line` 形式的引用改写为“会话记录第 <n> 行”。>",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/templates/issue.md",
+      "blockId": "b0011",
+      "zh": "1. <已清除敏感信息的第一条用户提示>\n2. <导致问题的各轮对话，每轮一行>\n3. <可观察到的现象或指标>",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/diagnosing-superpowers/templates/report.md",
+      "blockId": "b0006",
+      "zh": "<根据证据说明所报告问题前后发生了什么。使用正文叙述，每项事实判断后都附上 `path:line` 引用。说明置信度为高、中或低，以及哪些信息能提高置信度。不要讨论 Superpowers 应该如何改进。>",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "skills/writing-skills/anthropic-best-practices.md",
+      "blockId": "b0079",
+      "zh": "<img src=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=87782ff239b297d9a9e8e1b72ed72db9\" alt=\"简单的 SKILL.md 文件，展示 YAML 元数据区和 Markdown 正文\" data-og-width=\"2048\" width=\"2048\" data-og-height=\"1153\" height=\"1153\" data-path=\"images/agent-skills-simple-file.png\" data-optimize=\"true\" data-opv=\"3\" srcset=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=280&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=c61cc33b6f5855809907f7fda94cd80e 280w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=560&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=90d2c0c1c76b36e8d485f49e0810dbfd 560w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=840&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=ad17d231ac7b0bea7e5b4d58fb4aeabb 840w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=1100&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=f5d0a7a3c668435bb0aee9a3a8f8c329 1100w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=1650&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=0e927c1af9de5799cfe557d12249f6e6 1650w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-simple-file.png?w=2500&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=46bbb1a51dd4c8202a470ac8c80a893d 2500w\" />",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "tests/claude-code/README.md",
+      "blockId": "b0038",
+      "zh": "- 默认超时：每项测试 5 分钟。\n- Claude Code 可能需要一些时间才能响应。\n- 如有需要，用 `--timeout` 调整超时时间。\n- 测试应聚焦具体目标，避免长时间运行。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": "tests/claude-code/README.md",
+      "blockId": "b0047",
+      "zh": "- 测试验证 Skill 的*指令要求*，而不是完整执行过程。\n- 完整工作流测试会非常耗时。\n- 重点验证 Skill 的关键要求。\n- 测试应具有确定性，相同条件下应得到相同结果。\n- 避免测试实现细节。",
+      "reason": "逐段补齐英文残留，校正术语和机器翻译错误，保留命令、路径与 Markdown 结构。"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/diagnosis_report.md",
+      "blockId": "b0001",
+      "zh": "---\nname: Session Diagnosis Report\nabout: A report produced by the diagnosing-superpowers skill from a real session transcript\nlabels: bug, automated-issue-report\n---\n\n说明：这是“会话诊断报告”的 Issue 模板元数据。报告由 diagnosing-superpowers Skill 根据真实会话记录生成；默认标签为 `bug` 和 `automated-issue-report`。配置键及标签标识保持原样。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/platform_support.md",
+      "blockId": "b0001",
+      "zh": "---\nname: IDE / Platform Support Request\nabout: Request support for a new IDE, editor, or AI coding tool\nlabels: new-harness\n---\n\n说明：这是“IDE / 平台支持请求”的 Issue 模板元数据，用于申请支持新的 IDE、编辑器或 AI 编程工具；默认标签为 `new-harness`。配置键及标签标识保持原样。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/plans/2025-11-22-opencode-support-implementation.md",
+      "blockId": "b0149",
+      "zh": "mkdir -p ~/.config/opencode/superpowers\ngit clone https://github.com/obra/superpowers.git ~/.config/opencode/superpowers\n\n说明：先创建 `~/.config/opencode/superpowers` 目录，再把 Superpowers 仓库克隆到这个位置。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/plans/2025-11-22-opencode-support-implementation.md",
+      "blockId": "b0152",
+      "zh": "mkdir -p .opencode/plugin\nln -s ~/.config/opencode/superpowers/.opencode/plugin/superpowers.js .opencode/plugin/superpowers.js\n\n说明：先创建项目内的 `.opencode/plugin` 目录，再创建符号链接，指向用户配置目录中的 `superpowers.js` 插件文件。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-03-23-codex-app-compatibility.md",
+      "blockId": "b0018",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\nBRANCH=$(git branch --show-current)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。同时把当前分支名保存到 `BRANCH`；游离 HEAD 时分支名为空。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-03-23-codex-app-compatibility.md",
+      "blockId": "b0044",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\nBRANCH=$(git branch --show-current)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。同时把当前分支名保存到 `BRANCH`；游离 HEAD 时分支名为空。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-03-23-codex-app-compatibility.md",
+      "blockId": "b0069",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-03-23-codex-app-compatibility.md",
+      "blockId": "b0105",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\nBRANCH=$(git branch --show-current)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。同时把当前分支名保存到 `BRANCH`；游离 HEAD 时分支名为空。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-04-06-worktree-rototill.md",
+      "blockId": "b0040",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\nBRANCH=$(git branch --show-current)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。同时把当前分支名保存到 `BRANCH`；游离 HEAD 时分支名为空。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-04-06-worktree-rototill.md",
+      "blockId": "b0088",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-04-06-worktree-rototill.md",
+      "blockId": "b0127",
+      "zh": "GIT_DIR=$(cd \"$(git rev-parse --git-dir)\" 2>/dev/null && pwd -P)\nGIT_COMMON=$(cd \"$(git rev-parse --git-common-dir)\" 2>/dev/null && pwd -P)\nWORKTREE_PATH=$(git rev-parse --show-toplevel)\n\n说明：将当前 Git 目录和共享 Git 目录转换为绝对路径，分别保存到 `GIT_DIR` 和 `GIT_COMMON`，供后续判断是否处于独立工作树。同时把当前工作树根目录保存到 `WORKTREE_PATH`。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0025",
+      "zh": "触发步骤 0 时，跳过安全验证中的 `.gitignore` 检查，因为这项检查不适用于由外部创建的工作树。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0031",
+      "zh": "**步骤 1.5：检测环境**（位于步骤 1“验证测试”（Verify Tests）之后、步骤 2“确定基准分支”（Determine Base Branch）之前）。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0033",
+      "zh": "- **路径 A** 完全跳过步骤 2 和 3，不需要确定基准分支或提供选项。\n- **路径 B 和 C** 正常执行步骤 2“确定基准分支”（Determine Base Branch）和步骤 3“展示选项”（Present Options）。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md",
+      "blockId": "b0034",
+      "zh": "**路径 A — 外部管理的工作树，并处于游离 HEAD 状态**（`GIT_DIR != GIT_COMMON`，且 `BRANCH` 为空）：",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-06-worktree-rototill-design.md",
+      "blockId": "b0110",
+      "zh": "“位于 `.worktrees/` 或 `worktrees/` 的工作树由我们管理，其他位置不操作”这条经验判断适用于当前所有运行平台。如果未来某个平台也把这些项目内目录作为默认位置，就可能误判，让 Superpowers 尝试清理平台拥有的工作树。同样，如果用户自行执行 `git worktree add .worktrees/experiment`，没有通过 Superpowers 创建工作树，我们也会错误地认为它归 Superpowers 管理。这两种情况的风险都较低：目前各平台都使用带有自身品牌名称的路径，用户手动创建 `.worktrees/` 工作树也不常见，但仍应记录这些边界。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0007",
+      "zh": "1. **`skills/writing-skills/SKILL.md:58`**：`Project-specific conventions (put in CLAUDE.md)`，意为“项目专属约定（放入 CLAUDE.md）”。\n2. **`skills/receiving-code-review/SKILL.md:30`**：`\"You're absolutely right!\" (explicit CLAUDE.md violation)`，意为“‘你完全正确！’（明确违反 CLAUDE.md 中的要求）”。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0014",
+      "zh": "- **修改前：**`Project-specific conventions (put in CLAUDE.md)`，意为“项目专属约定（放入 CLAUDE.md）”。\n- **修改后：**`Project-specific conventions (put in your instructions file)`，意为“项目专属约定（放入你的指令文件）”。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-05-05-platform-neutral-config-refs-design.md",
+      "blockId": "b0018",
+      "zh": "- **修改前：**`\"You're absolutely right!\" (explicit CLAUDE.md violation)`，意为“‘你完全正确！’（明确违反 CLAUDE.md 中的要求）”。\n- **修改后：**`\"You're absolutely right!\" (explicit instruction-file violation)`，意为“‘你完全正确！’（明确违反指令文件中的要求）”。",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "skills/writing-skills/anthropic-best-practices.md",
+      "blockId": "b0081",
+      "zh": "<img src=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=a5e0aa41e3d53985a7e3e43668a33ea3\" alt=\"随 Skill 附带 reference.md、forms.md 等额外参考文件。\" data-og-width=\"2048\" width=\"2048\" data-og-height=\"1327\" height=\"1327\" data-path=\"images/agent-skills-bundling-content.png\" data-optimize=\"true\" data-opv=\"3\" srcset=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=280&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=f8a0e73783e99b4a643d79eac86b70a2 280w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=560&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=dc510a2a9d3f14359416b706f067904a 560w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=840&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=82cd6286c966303f7dd914c28170e385 840w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=1100&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=56f3be36c77e4fe4b523df209a6824c6 1100w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=1650&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=d22b5161b2075656417d56f41a74f3dd 1650w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-bundling-content.png?w=2500&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=3dd4bdd6850ffcc96c6c45fcb0acd6eb 2500w\" />",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    },
+    {
+      "path": "skills/writing-skills/anthropic-best-practices.md",
+      "blockId": "b0219",
+      "zh": "<img src=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=4bbc45f2c2e0bee9f2f0d5da669bad00\" alt=\"在指令文件旁附带可执行脚本\" data-og-width=\"2048\" width=\"2048\" data-og-height=\"1154\" height=\"1154\" data-path=\"images/agent-skills-executable-scripts.png\" data-optimize=\"true\" data-opv=\"3\" srcset=\"https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=280&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=9a04e6535a8467bfeea492e517de389f 280w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=560&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=e49333ad90141af17c0d7651cca7216b 560w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=840&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=954265a5df52223d6572b6214168c428 840w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=1100&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=2ff7a2d8f2a83ee8af132b29f10150fd 1100w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=1650&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=48ab96245e04077f4d15e9170e081cfb 1650w, https://mintcdn.com/anthropic-claude-docs/4Bny2bjzuGBK7o00/images/agent-skills-executable-scripts.png?w=2500&fit=max&auto=format&n=4Bny2bjzuGBK7o00&q=85&s=0301a6c8b3ee879497cc5b5483177c90 2500w\" />",
+      "reason": "补齐漏译正文或图片说明；命令与配置保留原标识，恢复正确换行并添加中文解释。"
+    }
+  ],
+  "reviewCount": 84
+}

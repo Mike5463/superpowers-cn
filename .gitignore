@@ -1,0 +1,17 @@
+# Local generated output and translation caches
+/dist/
+/content/corpus.json
+/content/reader_data.json
+/content/translation_cache.json
+/content/translation_report.json
+/content/build_report.json
+/.impeccable/review/
+/app/preview.html
+/node_modules/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.DS_Store
+/content/translation_review_flags.json

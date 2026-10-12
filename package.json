@@ -1,0 +1,12 @@
+{
+  "name": "superpowers-cn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline Chinese annotated source reader for Superpowers",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "test:content": "python3 tests/verify_content.py",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "devDependencies": {"playwright": "1.62.1"}
+}

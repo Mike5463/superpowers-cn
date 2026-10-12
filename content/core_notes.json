@@ -1,0 +1,1640 @@
+{
+  "files": {
+    "skills/using-superpowers/SKILL.md": {
+      "intro": "整个工具箱的入口说明。AI先看任务是否适合已有 Skill，再读取对应的方法；它本身不负责写业务功能。",
+      "takeaway": "借鉴“先选方法，再执行”的入口设计。只做一个小 Skill 时，可以不做总入口；有多种工作方法后再补路由说明。",
+      "notes": [
+        {
+          "match": "name: using-superpowers",
+          "label": "文件门口的标签",
+          "explanation": "开头的 YAML 是元信息：name 标识 Skill，description 帮助助手判断是否要读取正文。name 不是程序函数，也不会仅因写了这个词就执行。",
+          "blockId": "b0001"
+        },
+        {
+          "match": "<SUBAGENT-STOP>\nIf you were dispatched as a subagent to execute a specific task, ignore this skill.\n</SUBAGENT-STOP>",
+          "label": "避免子任务重新绕路",
+          "explanation": "这里明确排除了已收到具体任务的子 Agent。总控已经选好方法，执行者再次走完整入口会增加开销。它是本项目的流程约定，不是本网页读者的命令。",
+          "zh": "<SUBAGENT-STOP>\n如果你是被派来执行具体任务的子 Agent，请忽略这个 Skill。\n</SUBAGENT-STOP>",
+          "blockId": "b0002"
+        },
+        {
+          "match": "If you think there is even a 1% chance a skill might apply",
+          "label": "严格触发策略",
+          "explanation": "“哪怕只有 1% 的可能”是给助手的强提醒，目的是减少漏用 Skill。这不是系统计算出来的概率，也不是有一个自动评分器在后台决定。是否适用仍由模型结合任务判断。",
+          "blockId": "b0003"
+        },
+        {
+          "match": "BEFORE any response or action",
+          "label": "先读方法再行动",
+          "explanation": "项目希望助手在回答、追问、查文件之前先检查相关 Skill，避免先做一半才想起流程。这种先后顺序靠文字指导和运行环境实现，不是源码中的强制状态机。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "**Before entering plan mode:** if you haven't already brainstormed, invoke the brainstorming skill first.",
+          "label": "进入计划前澄清意图",
+          "explanation": "这里把 brainstorming 作为计划前的需求理解步骤。要结合那个 Skill 的正文阅读：要求已经完整的清晰小任务可以直接做，不能把这句误读成所有任务都必须长时间问答。",
+          "blockId": "b0008",
+          "zh": "**进入计划模式之前：**如果还没有做过需求澄清与构思，先调用 brainstorming Skill。"
+        },
+        {
+          "match": "process skills come first",
+          "label": "先定方法，再做功能",
+          "explanation": "流程类 Skill 决定怎么理解需求、怎么排错；实现类 Skill 决定具体页面或代码怎样做。把两类职责分开，可以复用一套排错方法到很多技术栈。",
+          "blockId": "b0011"
+        },
+        {
+          "match": "Skills evolve. Read current version.",
+          "label": "不要只凭记忆",
+          "explanation": "Skill 是会更新的文档。旧版本的认识可能与当前规则不同，所以助手需要读这次安装的内容。学习网页也固定到一次源码快照，避免不同版本混在一起。",
+          "blockId": "b0016"
+        },
+        {
+          "match": "## Platform Adaptation",
+          "label": "平台差异单独处理",
+          "explanation": "不同 AI 助手的读文件、调用 Skill、启动子 Agent 等工具不同。references 中的文件负责这些差异，入口正文保留共同原则；自己的小 Skill 没有跨平台需求时不必照搬这层。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "User instructions (CLAUDE.md, AGENTS.md, GEMINI.md",
+          "label": "用户约定有优先级",
+          "explanation": "源码把用户的直接要求和项目说明放在 Skill 之上。参考这个框架时要保留这种边界：Skill 提供工作方法，用户实际授权和宿主规则决定能做什么。",
+          "blockId": "b0021"
+        },
+        {
+          "match": "Then announce \"Using [skill] to [purpose]\"",
+          "label": "让使用过程可见",
+          "explanation": "这句话要求助手简短说明用了哪个方法、用于什么。意义是让用户能校对方向，不是让网页访问者输入一句英文口令。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "This is not negotiable. You cannot rationalize your way out of this.\n</EXTREMELY-IMPORTANT>",
+          "blockId": "b0005",
+          "zh": "这项要求不接受讨价还价。你不能为绕过规则找借口。\n</EXTREMELY-IMPORTANT>",
+          "label": "不要给漏用方法找借口",
+          "explanation": "作者用强措辞提醒助手遵守已选择的工作方法；这里的 rationalize 是找理由辩解，不是“合理化自己的出路”。"
+        }
+      ]
+    },
+    "skills/brainstorming/SKILL.md": {
+      "intro": "在需求还不完整时，帮助助手弄清“用户为什么要做、希望看到什么结果”。目标是少做错东西，而不是堆创意名词。",
+      "takeaway": "给自己的 Skill 写清何时需要追问、何时可以直接执行，并把猜测与用户确认的内容分开。先学这条边界，比照搬完整设计流程更有用。",
+      "notes": [
+        {
+          "match": "- **Everything that matters is in the request** (\"make the icon cornflower\n  blue\"). This is a quick, clear task. Do it, and say what you did.\n- **Something non-trivial is missing.** Start the conversation.",
+          "label": "清晰小任务可以直接做",
+          "explanation": "当前版本先判断信息是否已经完整。像指定一个确定的图标颜色这样的任务，直接完成并告知即可；并非凡是创作工作都必须逐个问题确认。",
+          "blockId": "b0007",
+          "zh": "- **请求里已经包含所有重要信息**（例如“把图标改成矢车菊蓝色”）。这是一项快速、明确的任务。直接做，并说明完成了什么。\n- **还有重要信息缺失。** 开始对话。"
+        },
+        {
+          "match": "Something non-trivial is missing.",
+          "label": "只追问会改变结果的信息",
+          "explanation": "缺少的重要信息会改变最终产物时，才开始需求对话。小白可以理解成：先找出“选错就要重做”的问题，而不是为了流程完整而问所有问题。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "If they take you up on it, this\n   skill is done",
+          "label": "用户可以跳过问答",
+          "explanation": "用户明确说直接开始时，这个需求问答流程结束；助手只需说明重要的制作选择，再进入正常执行。说明默认选择能让用户纠正，不能伪称对方已经确认。",
+          "blockId": "b0010"
+        },
+        {
+          "match": "One open question that gets them describing.",
+          "label": "先让用户描述场景",
+          "explanation": "开放问题能得到用户自己的目的和语言。过早给选项会把用户限制在助手想出来的答案里，所以这里先问具体场景，再在用户卡住时提供简短菜单。",
+          "blockId": "b0010"
+        },
+        {
+          "match": "Each message ends with one question",
+          "label": "保持单轮负担小",
+          "explanation": "一次聚焦一个问题，让用户容易回答。它属于此 Skill 的对话风格，学习网页可以借鉴“小步阅读”，无需把它当成所有沟通都适用的硬性规则。",
+          "blockId": "b0013"
+        },
+        {
+          "match": "Any choice you make goes in the design as your call",
+          "label": "标记默认决定",
+          "explanation": "助手自己选的语言、平台、库要标为助手的选择。这样用户能看见哪些来自自己的要求、哪些是默认方案，避免把推测写成事实。",
+          "blockId": "b0016"
+        },
+        {
+          "match": "This is territory, not a script.",
+          "label": "检查范围，不照表审问",
+          "explanation": "后面的目标、成功标准、已有内容等是需要理解的领域，不是一张要逐条念给用户的问卷。设计 Skill 时可以写检查范围，同时避免强迫每次机械执行。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "Offer recon.",
+          "label": "探索也要围绕需求",
+          "explanation": "这里建议在了解一点背景后说明打算查什么，让用户决定是否探索。它是 Superpowers 的需求对话写法；宿主工具权限及已有授权仍需结合实际会话判断。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "Show, don't tell.",
+          "label": "用可见产物帮助判断",
+          "explanation": "页面布局、图表、选项外观等用草图更容易讨论。Skill 不只是让模型写文字，也可以指导它在合适时调用外部可视化工具，但是否有工具取决于运行环境。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "Spikes get no tests\nor minimal ones",
+          "label": "试做与正式交付不同",
+          "explanation": "spike 指用于探索想法的临时试做，可省略正式计划和重型验证。用户确认保留试做结果才进入正式设计流程，不能把临时结果悄悄升级成已完成的产品。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "## Size the Work",
+          "label": "按大小选择流程",
+          "explanation": "源码分为清晰小任务、小改动、有书面设计的项目。小任务可以直接做，小改动在聊天中确认，大项目再写设计和计划；这解释了为什么不能把完整流程强加给每个请求。",
+          "blockId": "b0030"
+        },
+        {
+          "match": "docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md",
+          "label": "设计文件的落点",
+          "explanation": "这是本项目给软件设计文档的默认目录，不是 Skill 格式要求。它让设计、计划、实现有明确的相互引用；用户自己的目录约定可覆盖它。",
+          "blockId": "b0038"
+        },
+        {
+          "match": "Builder check:",
+          "label": "找一个没参与讨论的人读",
+          "explanation": "新 reviewer 检查设计是否足以实施。先把已回答的问题补入文档，次要细节由助手决定，只把会改变产物的关键问题交给用户，减少反复沟通。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "Nothing gets built until your human partner approves the full",
+          "label": "先确认要建什么",
+          "explanation": "这里的审批门针对尚未批准的完整描述，避免需求还含糊就写产品代码。正文随后列了用户跳过问答、已授权临时试做的例外；不能只截取这一句推导为每步都要批准。",
+          "blockId": "b0042"
+        },
+        {
+          "match": "the gate goes with it",
+          "label": "例外同样属于规则",
+          "explanation": "用户选择直接执行后，这道需求确认门也随该 Skill 结束。阅读源码时要把条件和例外一起看，否则会把允许继续的规则翻译成无条件停工。",
+          "blockId": "b0043"
+        },
+        {
+          "match": "A browser tab for showing mockups, diagrams, and prototypes.",
+          "label": "可视化伴侣是辅助工具",
+          "explanation": "visual companion 是浏览器预览机制，不是整个助手切换成一种新模式。它只承载看图更合适的问题；具体运行说明放在辅助文档，保持主要对话规则清晰。",
+          "blockId": "b0048"
+        },
+        {
+          "match": "# Brainstorming",
+          "blockId": "b0002",
+          "zh": "# 需求澄清与构思（Brainstorming）",
+          "label": "方法名称",
+          "explanation": "在需求还不完整时，帮助助手弄清“用户为什么要做、希望看到什么结果”。目标是少做错东西，而不是堆创意名词。"
+        },
+        {
+          "match": "You are very good at building. You build what you believe your human\npartner wants, and that belief is usually thinner than it feels. This\nskill is for finding out what they actually want, and why, before\nanything gets built.",
+          "blockId": "b0003",
+          "zh": "你很擅长构建东西。但你做出来的，是你以为用户想要的东西；而你对这个想法的理解，往往没有自己感觉的那么充分。这个 Skill 用来在开始构建之前，弄清用户真正想要什么，以及为什么。",
+          "label": "先理解意图",
+          "explanation": "这段在解释为什么要澄清需求：技术能力很强也可能做错目标，需要先核对自己的理解。"
+        },
+        {
+          "match": "People often haven't finished working out what they want. Good questions\nhelp them think it through. When you understand the why, you make the\nhundred decisions they never mention the way they would have made them.",
+          "blockId": "b0004",
+          "zh": "用户常常还没有完全想清楚自己要什么。好的问题能帮助他们理清思路。当你理解了原因，就能把他们没逐一说明的许多细节，处理得符合他们的期望。",
+          "label": "问题帮助用户思考",
+          "explanation": "追问的价值是理解意图，让默认细节符合用户目标，不是凑一张问题清单。"
+        },
+        {
+          "match": "Before you reply, ask yourself: what do I know about what they want, and\nwhy?",
+          "blockId": "b0006",
+          "zh": "回复前先问自己：对于用户想要什么、为什么想要，我已经知道哪些内容？",
+          "explanation": "",
+          "label": "中文译文校对"
+        },
+        {
+          "match": "Play back as you go. As soon as you understand one part well enough to\ndescribe it (what it's for and who it serves, say, or how one piece\nbehaves), describe that part back in about 200-300 words, then return to\nquestions about the next part. Playback and questions alternate through\nthe whole conversation; the last chunk covers whatever is left.",
+          "blockId": "b0027",
+          "zh": "边了解，边向用户复述。一旦你已经足够了解某一部分，能够描述它的用途、服务对象或具体行为，就用约 200–300 词复述这一部分，再继续询问下一部分。整个对话交替进行复述与提问，最后一部分覆盖剩余内容。",
+          "explanation": "",
+          "label": "中文译文校对"
+        }
+      ]
+    },
+    "skills/writing-plans/SKILL.md": {
+      "intro": "把已经理解并确认的需求，写成另一个工程师也能按步执行的计划。重点是记录不能靠猜的决定，不是提前写完所有代码。",
+      "takeaway": "借鉴“目标、接口、验证结果、任务边界”四件事。小 Skill 可以用简短检查清单，大项目才需要完整的任务计划。",
+      "notes": [
+        {
+          "match": "which files, which names and signatures",
+          "label": "记录不能猜的细节",
+          "explanation": "接口名称、参数、需求中的数值、证明成功的测试是实施者无法随便决定的内容，所以计划要写清。常规实现细节可以交给实施者判断，不必在计划里逐行代写。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "DRY. YAGNI. TDD. Frequent commits.",
+          "label": "三个缩写与小步提交",
+          "explanation": "DRY 是避免重复；YAGNI 是不提前做尚不需要的功能；TDD 是先写能失败的测试再实现。它们是本流程的工程习惯，不是 YAML 字段或 Skill 安装选项。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md",
+          "label": "计划与设计分开存",
+          "explanation": "specs 保存要做什么，plans 保存怎么分步做。分开能在改实现方法时保留需求依据；目录只是项目默认值，用户偏好优先。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "Split by responsibility, not by technical layer.",
+          "label": "按职责切分",
+          "explanation": "源码要求变化一起发生的内容放在一起，每个文件职责清晰。它不鼓励为了展示层次把小功能拆成很多无意义的 Controller、Service；在现有项目里先服从已有组织方式。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "A task is the smallest unit that carries its own test cycle",
+          "label": "任务应交付可检查的结果",
+          "explanation": "建目录、配环境、写文档要和需要它们的功能任务放在一起。单独一个“建文件夹”往往没有独立验收价值，而一个能测试的行为才适合单独审查。",
+          "blockId": "b0015"
+        },
+        {
+          "match": "Each step is one action with a checkable result",
+          "label": "步骤必须能判断完成",
+          "explanation": "“写测试”“看到预期失败”“写最少实现”“确认通过”“提交”各自对应一个可检查动作。这样执行者和接手的人能知道进度停在哪，不靠“差不多做了”判断。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "# [Feature Name] Implementation Plan",
+          "label": "这是计划模板，不是产品源码",
+          "explanation": "这段 Markdown 示范计划的标题、目标、架构、技术栈、需求来源、全局约束、审查重点。方括号中的文字要被真实项目内容替换，不能直接保存成空泛计划。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "## Global Constraints",
+          "label": "共用约束只写一次",
+          "explanation": "版本底线、依赖限制、名称格式等适用于所有任务，放在统一区域避免多处改漏。它不是全局系统配置；执行者读取的是该计划里的文字要求。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "## Review Focus",
+          "label": "把容易遗漏的场景带进审查",
+          "explanation": "计划写作者应找出需求暗示但测试还没覆盖的高风险输入，把测试加给相应任务，同时把这些风险交给审查者关注。空区域只能代表已经检查过且没有遗漏。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "**Interfaces:**",
+          "label": "任务间的交接说明",
+          "explanation": "Consumes 写本任务要用什么，Produces 写后面任务会依赖什么。明确名称、参数和返回类型，是为了避免一个任务叫 installHook、另一个却调用 install_hook。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "def test_specific_behavior():",
+          "label": "最小测试示例",
+          "explanation": "这是 Python 占位示例：用一个输入调用 function，再断言结果等于 expected。真正计划要给出具体函数、输入、预期值；这个例子本身不是项目已经实现的功能。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "Expected: FAIL with \"function not defined\"",
+          "label": "预期失败也是验收结果",
+          "explanation": "在实现前，测试应因目标功能缺失而失败。若失败原因只是导入路径拼错，就没有证明测试能捕捉目标问题，需要先纠正测试环境。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "git add tests/path/test.py src/path/file.py",
+          "label": "提交示例的含义",
+          "explanation": "git add 选择这次任务涉及的文件，git commit 保存一个可回溯的版本。路径和提交信息都是演示值；学习网页展示这些命令不表示已经运行。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "A plan is the set of decisions the implementer cannot make alone. A plan\nlonger than the code it describes has written the code instead. Lines that\ndecide nothing (\"TBD\", \"handle edge cases\", \"add appropriate validation\",\n\"write tests for the above\", a type or function no task defines) are the\nopposite failure, and the self-review catches both.",
+          "label": "计划不是代码流水账",
+          "explanation": "好的计划锁定必要决定，又让工程师能用正常方法完成实现。“处理所有边界”太模糊，提前抄完整函数体又太重；应写确切接口、测试和需求值。",
+          "zh": "计划记录的是实施者无法独自决定的事项。如果计划比它描述的代码还长，就已经代替实施者写了代码。那些没有确定任何具体决定的内容（“待定”“处理边界情况”“添加适当校验”“给上述内容写测试”，或没有任何任务定义的类型与函数）则是另一种失败。自查要找出这两类问题。",
+          "blockId": "b0026"
+        },
+        {
+          "match": "Self-Review",
+          "label": "写完先自查一致性",
+          "explanation": "自查需求是否每条有任务、名字类型前后是否一致、验证是否具体、计划长度是否合适。当前版本这一步由计划作者自己做，不是再派一个子 Agent 审查整份计划。",
+          "blockId": "b0027"
+        },
+        {
+          "match": "**Subagent-driven** - A fresh subagent implements each task",
+          "label": "两种执行方式由交接确定",
+          "explanation": "子 Agent 方式按任务换执行者并逐任务审查；Native 方式由当前助手自己连续执行，到末尾做整体审查。两者都在当前会话里，选择体现成本、上下文和审查强度的权衡。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "When an execution method has already been supplied",
+          "label": "不重复询问已决定的事",
+          "explanation": "用户已明确执行方式时，保留该选择，只请用户校对计划是否准确；没有选过时才需要在交接中选择。自己的 Skill 可以借鉴“记住已经授权的决定”。",
+          "blockId": "b0041"
+        },
+        {
+          "match": "# Writing Plans",
+          "blockId": "b0002",
+          "zh": "# 编写实施计划",
+          "label": "方法名称",
+          "explanation": "把已经理解并确认的需求，写成另一个工程师也能按步执行的计划。重点是记录不能靠猜的决定，不是提前写完所有代码。"
+        },
+        {
+          "match": "**For this plan I recommend <one of the two>, because <one sentence from the plan: how much the tasks depend on each other's interfaces, how many there are, what a shipped mistake would cost>. Does the plan capture what you want, and which approach should we use?\"**",
+          "blockId": "b0040",
+          "zh": "**“对于这份计划，我推荐<两种方式中的一种>，因为<根据计划用一句话说明：任务之间有多依赖彼此的接口、任务有多少、上线后的错误会造成多大代价>。计划是否体现了你想要的结果？我们应该采用哪种方式？”**",
+          "explanation": "",
+          "label": "中文译文校对"
+        }
+      ]
+    },
+    "skills/executing-plans/SKILL.md": {
+      "intro": "当前助手自己按计划连续实现所有任务，并用测试与进度记录保持可靠，最后做一次整个分支的审查。",
+      "takeaway": "借鉴“任务说明＋实际验证＋持久进度”即可。不要把旧版的分批暂停机制套到本次源码；这个版本强调当前会话持续执行。",
+      "notes": [
+        {
+          "match": "Execute the plan yourself, task by task, in this session: no implementer\nsubagent per task, no reviewer per task. One fresh-context review of the\nwhole branch at the end.",
+          "label": "本会话自己执行",
+          "explanation": "每个任务由当前助手完成，没有每个任务新建执行者和审查者。仍保留末尾整体审查，这降低重复读背景的成本，也意味着过程中少了一双独立眼睛。",
+          "blockId": "b0003",
+          "zh": "在当前会话中由你自己逐任务执行计划：不为每个任务派实现子 Agent，也不为每个任务派审查者。最后，用一个全新的上下文审查整个分支。"
+        },
+        {
+          "match": "Continuous execution:",
+          "label": "不在每个任务间重新确认",
+          "explanation": "已经选择 inline 后，助手执行计划中的全部任务，不反复问“是否继续”。只在正文列出的风险或计划完全无法判断时暂停；学习网页读者不需要手动模拟每次确认。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "Rulings, not stalls.",
+          "label": "小分歧要决定并记录",
+          "explanation": "发现接口冲突或计划小错误时，以已确认需求为准做最小修正，写下决定、原因和判断错的成本。Ruling 是“处理分歧的决定记录”，不意味着助手有权自行执行未授权的外部操作。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "Four things stop you",
+          "label": "暂停条件有明确边界",
+          "explanation": "不可逆或破坏操作、安全敏感操作、按惯例需确认的工作区外影响、所有路径都只能猜的严重坏计划，是源码列出的四类停点。其他常规实现选择继续做并记录。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "digraph process {",
+          "label": "这是一张工作流程图",
+          "explanation": "DOT 源码描述准备、任务循环、检查、末尾审查和收尾之间的箭头。它被图形工具画成图，供模型和人理解；它不是自动运行任务的程序或强制状态机。",
+          "blockId": "b0015"
+        },
+        {
+          "match": "the ledger is the record.",
+          "label": "把进度写到文件",
+          "explanation": "ledger 是进度账本：记录已完成任务、提交区间、测试、重要决定。聊天会被压缩或丢失细节，文件能让同一助手恢复后不重复实现已经提交的内容。",
+          "blockId": "b0018"
+        },
+        {
+          "match": "same directory, same format",
+          "label": "两种执行器共用记录",
+          "explanation": "inline 与子 Agent 方式复用工作区和账本格式，所以中途换执行方式仍能从已完成任务继续。共享的是约定的数据记录，不是两套必须同时开启的后台服务。",
+          "blockId": "b0019"
+        },
+        {
+          "match": "scripts/sdd-workspace PLAN_FILE",
+          "label": "准备该计划的临时目录",
+          "explanation": "sdd-workspace 根据计划找到独立临时目录，里面存账本、任务摘要、审查包。PLAN_FILE 是要替换的真实计划路径；这段文字是命令示范，网页阅读不会执行它。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "trust the ledger and `git log`",
+          "label": "恢复时核对持久证据",
+          "explanation": "上下文压缩后，先核对账本与提交历史；有完成记录的任务不重做。只靠助手说“我记得已完成”不可靠，所以需要能查到的提交和验证结果。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "Pre-flight: no shared interfaces",
+          "label": "先核对任务衔接",
+          "explanation": "执行前检查一个任务输出与另一个任务输入是否一致。没有共享接口时写这一行；它不是每个项目固定要有的接口名称。",
+          "blockId": "b0023"
+        },
+        {
+          "match": "scripts/task-start PLAN_FILE N",
+          "label": "开始任务前取出精确要求",
+          "explanation": "task-start 打印第 N 个任务的摘要路径和开始提交 BASE。助手读摘要而不是反复读整份计划，既省上下文，也保留名称、数值和测试的准确性。",
+          "blockId": "b0027"
+        },
+        {
+          "match": "**The plan is wrong** — a step contradicts the spec",
+          "label": "计划也可能出错",
+          "explanation": "真实命令输出与 Expected 不同，可能是代码错，也可能是计划错。代码错就调查原因，计划错就按需求做最小纠正并登记；不能为了凑预期输出修改真实行为。",
+          "blockId": "b0032"
+        },
+        {
+          "match": "scripts/task-done PLAN_FILE N BASE -- <test command>",
+          "label": "完成记录受测试结果控制",
+          "explanation": "task-done 跑指定测试，保存完整输出，只在通过后把任务标为 complete。双横线后的内容是测试命令；BASE 是该任务开始的提交，用来覆盖多次提交。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "With a subagent tool:",
+          "label": "末尾借一双独立眼睛",
+          "explanation": "有子 Agent 工具时派新审查者看整个分支；没有时作者另做一次审查并说明局限。宿主是否允许选择具体模型要看工具能力，网页不能承诺所有平台都能指定模型。",
+          "blockId": "b0044"
+        },
+        {
+          "match": "Do not dispatch a\nre-review",
+          "label": "inline 的修复后验证方式",
+          "explanation": "当前版本整体审查后，把重要问题集中修复一次；每个修复用先失败再通过的测试证明，再跑全套测试，不再派第二轮审查。这与子 Agent 执行器的局部复审机制不同。",
+          "blockId": "b0048"
+        },
+        {
+          "match": "Before you delete anything, collect every ledger line containing",
+          "label": "小建议保留给用户决定",
+          "explanation": "轻微问题记到 deferred minors，不为了顺手打磨无限扩大工作范围。重要决定和未做建议最后列给用户，避免临时账本清理后信息消失。",
+          "blockId": "b0051"
+        },
+        {
+          "match": "[task-start plan 1 → brief read; BASE a1b2c3d]",
+          "label": "示例是一段会话演练",
+          "explanation": "下面用虚构提交号演示两个任务：取摘要、先见失败、实现、通过、提交、完成登记，再做整体审查。它展示记录应该长什么样，不是仓库里的真实运行结果。",
+          "blockId": "b0058"
+        },
+        {
+          "match": "# Executing Plans",
+          "blockId": "b0002",
+          "zh": "# 在当前会话执行计划",
+          "label": "方法名称",
+          "explanation": "当前助手自己按计划连续实现所有任务，并用测试与进度记录保持可靠，最后做一次整个分支的审查。"
+        }
+      ]
+    },
+    "skills/writing-skills/SKILL.md": {
+      "intro": "教作者把可复用的做事方法写成 Skill，并用真实任务比较“有 Skill”和“没 Skill”的表现，再修正文案。",
+      "takeaway": "先确定一个反复遇到的问题，写使用时机和操作方法，再用同一个任务测试前后表现。SKILL.md 是核心，辅助文件只在确有需要时添加。",
+      "notes": [
+        {
+          "match": "**Writing skills IS Test-Driven Development applied to process documentation.**",
+          "label": "给工作方法做测试",
+          "explanation": "这里的“代码”换成 SKILL.md，“测试”换成让 AI 面对具体任务。先观察没有 Skill 的错误，再补针对性的指导，才能知道文档是否真有帮助。",
+          "zh": "**编写 Skill，就是把测试驱动开发用于流程文档。**",
+          "blockId": "b0004"
+        },
+        {
+          "match": "Skills are NOT",
+          "label": "记录方法，不抄聊天流水",
+          "explanation": "一次事故的完整故事通常难以复用。Skill 应提炼适用条件、步骤、验证和常见误区；案例只用于帮助理解，不能替代方法本身。",
+          "blockId": "b0013"
+        },
+        {
+          "match": "Project-specific conventions (put in your instructions file)",
+          "label": "项目约定与 Skill 分工",
+          "explanation": "只适用于一个仓库的命名、目录或代码规则，更适合写进项目说明；能跨任务或跨项目复用的能力才适合 Skill。这样能避免每个项目都装一堆只用一次的工具。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "skills/\n  skill-name/",
+          "label": "最小结构只需主文件",
+          "explanation": "一个 Skill 目录内至少有 SKILL.md。supporting-file 是按需补的参考、脚本或模板，不是必须建全套 references、scripts、assets 目录的固定模板。",
+          "blockId": "b0029"
+        },
+        {
+          "match": "Flat namespace",
+          "label": "每个 Skill 独立可发现",
+          "explanation": "不同 Skill 以各自目录并列，便于工具列出和选择。它不代表一个 Skill 的所有内容都必须塞进一个文件；大参考资料可以拆出去。",
+          "blockId": "b0030"
+        },
+        {
+          "match": "**Frontmatter (YAML):**\n- Two required fields: `name` and `description` (see [agentskills.io/specification](https://agentskills.io/specification) for all supported fields)\n- Max 1024 characters total\n- `name`: Use letters, numbers, and hyphens only (no parentheses, special chars)\n- `description`: Third-person, describes ONLY when to use (NOT what it does)\n  - Start with \"Use when...\" to focus on triggering conditions\n  - Include specific symptoms, situations, and contexts\n  - **NEVER summarize the skill's process or workflow** (see SDO section for why)\n  - Keep under 500 characters if possible",
+          "label": "格式规范与项目习惯要分清",
+          "explanation": "name 和 description 是核心元信息。但这一节同时混有项目自己的长度建议、命名示例和触发文案规则，不能都介绍成跨平台通用规范。创建真实 Skill 还需核对目标平台及当前格式规范。",
+          "blockId": "b0034",
+          "zh": "**头部元信息（YAML）：**\n- 两个必填字段：`name` 和 `description`（全部支持的字段见 [agentskills.io/specification](https://agentskills.io/specification)）。\n- 总计最多 1024 个字符。\n- `name`：仅使用字母、数字和连字符，不用括号或特殊字符。\n- `description`：用第三人称，**只描述何时使用，不描述具体做什么**。\n  - 从 “Use when...” 开始，突出触发条件。\n  - 包含具体症状、情境和背景。\n  - **不要总结 Skill 的过程或工作流程**（原因见 SDO 部分）。\n  - 如果可以，保持在 500 个字符以内。"
+        },
+        {
+          "match": "description`: Third-person, describes ONLY when to use",
+          "label": "本项目的严格 description 策略",
+          "explanation": "Superpowers 要把 description 聚焦于何时用，避免助手只照一句摘要做事而不读正文。这是项目经验性规则；通用格式里的 description 往往同时描述用途和使用时机，不能说所有 Skill 都禁止介绍用途。",
+          "blockId": "b0034"
+        },
+        {
+          "match": "name: Skill-Name-With-Hyphens",
+          "label": "这段是结构示意，不是可直接安装的成品",
+          "explanation": "模板演示 YAML 与正文分区。占位名称需换成真实名称；大写示例也不应当作跨平台名称规范依据，实际创建时应遵循目标格式的命名要求。",
+          "blockId": "b0035"
+        },
+        {
+          "match": "Make it answer: \"Should I read this skill right now?\"",
+          "label": "description 是发现入口",
+          "explanation": "助手通常先看到很短的描述，再决定是否加载正文。给出具体场景、症状和关键词，比“一个超级强大的工具”更容易正确触发。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "TWO reviews",
+          "label": "此处是经验案例，有历史语境",
+          "explanation": "这段用过去的“两阶段审查”测试解释 description 写得太像流程会让助手走捷径。本次快照的 subagent-driven-development 已采用一次任务审查同时给出规格与质量结论；不要因此把架构画成强制两位审查者。",
+          "blockId": "b0043"
+        },
+        {
+          "match": "# ❌ BAD: Summarizes workflow",
+          "label": "好坏 YAML 示例在比较触发写法",
+          "explanation": "代码围栏里的 description 示例都只是文本。坏例子把派子 Agent 和审查流程塞进发现描述，好例子只说何时读取正文。可以借鉴这项取舍，但正文仍要把执行方法写清。",
+          "blockId": "b0046"
+        },
+        {
+          "match": "### 2. Keyword Coverage",
+          "label": "让实际问题能找到它",
+          "explanation": "关键词来自常见报错、症状、同义词和工具名。比如测试不稳定、竞态、超时，比泛泛的“测试技巧”更能帮助助手匹配任务；不用堆无关词。",
+          "blockId": "b0049"
+        },
+        {
+          "match": "wc -w skills/path/SKILL.md",
+          "label": "字数检查只是写作辅助",
+          "explanation": "wc -w 统计以空白分隔的词数，用于提醒英文文档不要过长。它不是验证 Skill 语义有效的测试，中文也不能直接按这个数字衡量长度。",
+          "blockId": "b0065"
+        },
+        {
+          "match": "search-conversations supports multiple modes and filters. Run --help for details.",
+          "label": "把工具细节放回工具帮助",
+          "explanation": "示例前后对比说明：主文档写何时用、怎么找到帮助，具体命令选项可交给 --help。这样减少每次读 Skill 的内容量；search-conversations 只是该例子的命令名。",
+          "blockId": "b0058"
+        },
+        {
+          "match": "Why no @ links",
+          "label": "按需读与强制加载的区别",
+          "explanation": "源码提醒某些环境的 @ 路径语法会立即加载文件，而文字引用 Skill 名可让助手按需调用。此行为依平台而定，文中的 200k+ 不是每次引用都会发生的确定消耗。",
+          "blockId": "b0071"
+        },
+        {
+          "match": "digraph when_flowchart",
+          "label": "流程图只解释容易走错的分支",
+          "explanation": "这个 DOT 图问“是否有不明显的决策”：有才画小流程图，否则用 Markdown。DOT 是绘图描述语言，箭头不等于宿主自动执行或强制控制流程。",
+          "blockId": "b0073"
+        },
+        {
+          "match": "node ./render-graphs.js ../some-skill",
+          "label": "将文字图转成 SVG",
+          "explanation": "render-graphs.js 读取目标 Skill 的 DOT 图并渲染。--combine 可合并到一张 SVG；some-skill 是示例路径。这是辅助可视化工具，写最小 Skill 无需一定配它。",
+          "blockId": "b0078"
+        },
+        {
+          "match": "condition-based-waiting/",
+          "label": "代码辅助文件按需要加",
+          "explanation": "这里把可复用等待函数放在 example.ts，主文件负责说明什么时候用和怎么改。意义是让脚本可运行、文档易读；不是每个 Skill 都要一个 TypeScript 文件。",
+          "blockId": "b0090"
+        },
+        {
+          "match": "Invoke bundled scripts through their interpreter",
+          "label": "命令写法考虑打包环境",
+          "explanation": "bash scripts/tool.sh 或 node scripts/tool.js 显式指定解释器，可避免某些插件打包后脚本失去可执行权限。它解决实际兼容问题，不意味着所有 Skill 都必须带脚本。",
+          "blockId": "b0095"
+        },
+        {
+          "match": "NO SKILL WITHOUT A FAILING TEST FIRST",
+          "label": "这是作者的制作纪律",
+          "explanation": "“没有先失败的测试，就不写 Skill”是 Superpowers 把 TDD 用到文档的强约束。它不是文件格式校验项，也不要求学习网页的读者立刻删除自己已有的笔记。",
+          "blockId": "b0097"
+        },
+        {
+          "match": "## Match the Form to the Failure",
+          "label": "文案形状要对应问题",
+          "explanation": "不守规则时可用明确禁令和常见借口；输出结构不对时给正面结构模板；漏字段时加必填槽位；条件性行为用可观察的条件。不能把每个问题都修成一长串“禁止”。",
+          "blockId": "b0124"
+        },
+        {
+          "match": "| \"Too simple to test\" | Simple code breaks. Test takes 30 seconds. |",
+          "label": "表格用来堵已观察到的借口",
+          "explanation": "这类表格把“太简单不用测”等说法与实际风险对应。作者要求从基线测试中收集借口，而不是凭想象写大量威胁性话术。",
+          "blockId": "b0147"
+        },
+        {
+          "match": "One fresh-context sample per call",
+          "label": "小样本试文案要有对照",
+          "explanation": "micro-test 每次用新的上下文，比较有指导和无指导的输出，每个版本至少多次取样并人工查看。单次看起来成功无法证明稳定改善，匹配统计也可能把引用反例误算成失败。",
+          "blockId": "b0166"
+        },
+        {
+          "match": "Micro-tests verify wording; they do not replace pressure scenarios for discipline skills.",
+          "label": "小测试与压力场景分工",
+          "explanation": "小测试便宜，适合反复调措辞；压力场景用于验证助手在赶时间、沉没成本等压力下仍能遵守纪律。两者目的不同，不能拿字数统计替代行为测试。",
+          "zh": "微测试验证措辞，不能替代纪律类 Skill 的压力场景测试。",
+          "blockId": "b0167"
+        },
+        {
+          "match": "Code in Flowcharts",
+          "label": "代码和示意图要各用其所",
+          "explanation": "这段 DOT 反例把 import fs、read file 当作图节点，代码不方便复制且难以阅读。需要运行的示例放代码围栏，流程图只表示决策关系。",
+          "blockId": "b0174"
+        },
+        {
+          "match": "STOP: Before Moving to Next Skill",
+          "label": "一次验证一个方法",
+          "explanation": "作者反对一次堆出多个未测试 Skill 再一起发布，因为无法确定每个方法是否有效。新手实践从一个真实问题开始，确认改善后再扩展。",
+          "blockId": "b0179"
+        },
+        {
+          "match": "## Discovery Workflow",
+          "label": "分层阅读节省内容量",
+          "explanation": "发现描述→看概览→读方法→需要时加载例子。这个渐进过程解释了为什么主文件保持短、辅助材料分开；它是助手阅读约定，不是必须写一个自动检索服务器。",
+          "blockId": "b0191"
+        },
+        {
+          "match": "# Writing Skills",
+          "blockId": "b0002",
+          "zh": "# 编写 Skill",
+          "label": "方法名称",
+          "explanation": "教作者把可复用的做事方法写成 Skill，并用真实任务比较“有 Skill”和“没 Skill”的表现，再修正文案。"
+        },
+        {
+          "match": "**Personal skills live in your runtime's skills directory** (`~/.claude/skills/` on Claude Code) — see [codex-tools.md](../using-superpowers/references/codex-tools.md) or [gemini-tools.md](../using-superpowers/references/gemini-tools.md) for the path on those runtimes. Codex, Copilot CLI, and Gemini CLI all also recognize `~/.agents/skills/` as a cross-runtime alias.",
+          "blockId": "b0005",
+          "zh": "**个人 Skill 放在运行环境的 Skill 目录中**（Claude Code 使用 `~/.claude/skills/`）。Codex 或 Gemini 的路径请查看 [codex-tools.md](../using-superpowers/references/codex-tools.md) 或 [gemini-tools.md](../using-superpowers/references/gemini-tools.md)。Codex、Copilot CLI 和 Gemini CLI 也都将 `~/.agents/skills/` 识别为跨运行环境的别名路径。",
+          "label": "安装位置依运行环境",
+          "explanation": "这一段是本次源码快照描述的路径支持情况。真实安装要看当次平台文档；学习网页不修改这些目录。"
+        },
+        {
+          "match": "**REQUIRED BACKGROUND:** You MUST understand superpowers:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.",
+          "blockId": "b0008",
+          "zh": "**所需背景知识：**使用这个 Skill 前，必须理解 `superpowers:test-driven-development`。该 Skill 定义了基础的 RED-GREEN-REFACTOR 循环；本文件把 TDD 的方法用于文档。",
+          "label": "调用标识不要翻译",
+          "explanation": "superpowers: 是项目命名空间，test-driven-development 是 Skill 名。把前缀翻译成“超能力”会丢失可识别名称；正文含义用中文解释即可。"
+        },
+        {
+          "match": "**Do NOT:**\n- Create multiple skills in batch without testing each\n- Move to next skill before current one is verified\n- Skip testing because \"batching is more efficient\"",
+          "blockId": "b0181",
+          "zh": "**不要这样做：**\n- 批量创建多个 Skill，却不逐个测试。\n- 当前 Skill 尚未验证，就开始下一个。\n- 因为“批量处理更高效”而跳过测试。",
+          "explanation": "",
+          "label": "中文译文校对"
+        },
+        {
+          "match": "**The deployment checklist below is MANDATORY for EACH skill.**",
+          "blockId": "b0182",
+          "zh": "**下面的发布检查清单，必须对每一个 Skill 分别完成。**",
+          "explanation": "",
+          "label": "中文译文校对"
+        },
+        {
+          "match": "**GREEN Phase - Write Minimal Skill:**\n- [ ] Name uses only letters, numbers, hyphens (no parentheses/special chars)\n- [ ] YAML frontmatter with required `name` and `description` fields (max 1024 chars; see [spec](https://agentskills.io/specification))\n- [ ] Description starts with \"Use when...\" and includes specific triggers/symptoms\n- [ ] Description written in third person\n- [ ] Keywords throughout for search (errors, symptoms, tools)\n- [ ] Clear overview with core principle\n- [ ] Address specific baseline failures identified in RED\n- [ ] Guidance form matches the failure type (see Match the Form to the Failure)\n- [ ] For behavior-shaping guidance: wording micro-tested against a no-guidance control (5+ reps, every flagged match read manually) — N/A for pure reference skills\n- [ ] Code inline OR link to separate file\n- [ ] One excellent example (not multi-language)\n- [ ] Run scenarios WITH skill - verify agents now comply",
+          "blockId": "b0187",
+          "zh": "**GREEN 阶段——编写最小 Skill：**\n- [ ] 名称只包含字母、数字和短横线，不包含括号或特殊字符。\n- [ ] YAML 文件头含必填的 `name` 和 `description` 字段（最多 1024 个字符；见[规范](https://agentskills.io/specification)）。\n- [ ] 描述以“Use when...”开头，包含具体触发条件或症状。\n- [ ] 描述采用第三人称。\n- [ ] 正文包含便于搜索的关键词，如错误、症状和工具。\n- [ ] 概述清楚说明核心原则。\n- [ ] 针对 RED 阶段发现的具体基线失败提出规则。\n- [ ] 指导形式符合失败类型（参见“让形式与失败类型匹配”）。\n- [ ] 对引导行为的规则：将措辞与不提供规则的对照组做小范围测试，重复至少 5 次；逐条人工阅读所有被标记的匹配。纯参考资料类 Skill 不适用这一项。\n- [ ] 代码直接写在正文中，或链接到独立文件。\n- [ ] 提供一个优秀示例，不堆砌多语言版本。\n- [ ] 加载 Skill 后重跑场景，验证助手现在能够遵守规则。",
+          "explanation": "",
+          "label": "中文译文校对"
+        }
+      ]
+    },
+    "skills/subagent-driven-development/SKILL.md": {
+      "intro": "由总控助手把计划逐个派给新执行者，再审查每个任务，最后审查整个分支。用分开的上下文换取更独立的判断。",
+      "takeaway": "借鉴任务边界、交接资料和检查结果。不要为了写一个小 Skill 就加多 Agent；当任务确实复杂且平台支持时，再引入这些角色。",
+      "notes": [
+        {
+          "match": "a task review (spec compliance + code quality)",
+          "label": "任务审查合并检查两件事",
+          "explanation": "当前快照每个任务有一次 task review，同时检查是否符合需求、代码质量是否合格；不能把旧示例描述成当前必须先规格审查再质量审查两轮。",
+          "blockId": "b0003"
+        },
+        {
+          "match": "They should never inherit your session's context or history",
+          "label": "控制子任务上下文",
+          "explanation": "源码希望总控只交给子 Agent 任务必需的信息，不复制完整会话历史。这能降低重复阅读和无关干扰；真正能否不继承历史取决于宿主的派发能力。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "Partner chose inline, or no subagent tool?",
+          "label": "先选择执行方式",
+          "explanation": "这张 DOT 图先检查有没有计划、任务是否大致独立，再看用户是否选了自己执行或工具不支持子 Agent。图是在说明路由规则，不是代码自动创建 Agent。",
+          "blockId": "b0011"
+        },
+        {
+          "match": "Both run in this session",
+          "label": "与 inline 的真正区别",
+          "explanation": "两种方式都在本会话中连续执行并共享账本。差别是每个任务是否换执行者和做独立任务审查；不能把 executing-plans 简化成另开会话或每批等反馈。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "Track progress in\na ledger file, not only in todos.",
+          "label": "持久进度比聊天记忆可靠",
+          "explanation": "账本记录完成任务、提交、修复轮次和决定。总控上下文压缩后据此恢复，避免重复派发已完成工作，这是辅助脚本和报告文件存在的重要原因。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "bash scripts/sdd-workspace PLAN_FILE",
+          "label": "每份计划独占临时资料",
+          "explanation": "sdd-workspace 返回该计划的工作目录，brief、report、review package 放在里面。不同计划分目录，避免把别人的进度当成自己的或清理错资料。",
+          "blockId": "b0018"
+        },
+        {
+          "match": "## Model Selection",
+          "label": "按任务需要分配能力",
+          "explanation": "机械任务与复杂判断的需求不同，源码主张按角色及风险选模型。这里的便宜、标准、最强只是能力层级，不是可保证的具体价格；宿主可能不支持显式选择。",
+          "blockId": "b0024"
+        },
+        {
+          "match": "Batch small same-shape work.",
+          "label": "相同小改动允许合并派发",
+          "explanation": "虽然强调新任务新执行者，正文允许把多处同样的小修改组成一批，统一审查。这说明该流程关注判断边界，而不是机械地每个文件启动一个 Agent。",
+          "blockId": "b0035"
+        },
+        {
+          "match": "bash scripts/task-brief PLAN_FILE N",
+          "label": "任务摘要是一份准确交接单",
+          "explanation": "脚本从计划提取第 N 个任务，总控把文件路径给执行者。重要数值只在摘要里出现一次，减少复制时不一致；执行者不需要读整份计划和聊天历史。",
+          "blockId": "b0040"
+        },
+        {
+          "match": "DONE_WITH_CONCERNS",
+          "label": "完成状态还要带疑虑",
+          "explanation": "DONE 表示完成；DONE_WITH_CONCERNS 表示完成但有风险；NEEDS_CONTEXT 表示资料不足；BLOCKED 表示无法继续。状态是报告协议中的文字，不是后台自动监控状态机。",
+          "blockId": "b0045"
+        },
+        {
+          "match": "Never dispatch multiple implementation subagents in parallel",
+          "label": "本流程的执行者顺序处理",
+          "explanation": "这里明确禁止同时派多个实现者，避免共享文件和任务接口冲突。dispatching-parallel-agents 是另一种针对独立问题的分工方法，不能简单理解为这个流程默认越多并行越好。",
+          "blockId": "b0040"
+        },
+        {
+          "match": "**DONE:** Generate the review package",
+          "label": "审查范围从任务开始算",
+          "explanation": "一个任务可能有多次提交，只用 HEAD~1 会漏掉较早部分。开始前记录 BASE，再审 BASE 到 HEAD 的完整范围，review-package 将历史、摘要和差异打包。",
+          "blockId": "b0044"
+        },
+        {
+          "match": "spec compliance AND task quality",
+          "label": "两个结论都要有",
+          "explanation": "完成不只意味着测试通过；还要检查需求是否遗漏、有没有多加不需要的功能、代码是否合理。执行者自查有价值，但不能替代任务审查者的独立判断。",
+          "blockId": "b0051"
+        },
+        {
+          "match": "Five rounds maximum per task",
+          "label": "修复循环要有上限",
+          "explanation": "前 3 轮找原执行者修，4–5 轮换更强的新执行者；每轮只复查修复区域。到上限仍有问题，就记录判断并处理依赖，避免审查不断扩大或无休止来回。",
+          "blockId": "b0058"
+        },
+        {
+          "match": "The re-review is scoped.",
+          "label": "复审只检查本轮修复",
+          "explanation": "FIX_BASE 是上次审查看到的提交。复审判断原问题是否解决以及本次差异有没有带来新破坏；其他区域的新建议记入账本，不随意延长本任务循环。",
+          "blockId": "b0062"
+        },
+        {
+          "match": "Real and load-bearing",
+          "label": "会影响后续任务的问题必须处理",
+          "explanation": "load-bearing 指后面的任务会依赖这处行为。它与可以暂缓的润色建议不同；总控必须判断最小修正并把决定带给后续任务，不能只为结束循环把结构性失败藏起来。",
+          "blockId": "b0066"
+        },
+        {
+          "match": "dispatch ONE fix subagent",
+          "label": "末尾集中修一批问题",
+          "explanation": "整体审查后，一位修复者拿到完整问题清单，再进行一次范围明确的复审。逐个问题派修复者会重复读背景、跑测试，也可能互相冲突。",
+          "blockId": "b0074"
+        },
+        {
+          "match": "[Ledger: Task 1: complete",
+          "label": "会话示例展示记录形式",
+          "explanation": "示例中的 Task 1、虚构提交号、测试数量用来展示交接和账本格式。它们不代表仓库实测结果，也没有定义一个安装 hook 的正式产品接口。",
+          "blockId": "b0083"
+        },
+        {
+          "match": "# Subagent-Driven Development",
+          "blockId": "b0002",
+          "zh": "# 由子 Agent 分工实现",
+          "label": "方法名称",
+          "explanation": "由总控助手把计划逐个派给新执行者，再审查每个任务，最后审查整个分支。用分开的上下文换取更独立的判断。"
+        }
+      ]
+    },
+    "skills/dispatching-parallel-agents/SKILL.md": {
+      "intro": "把互不依赖的问题分别交给多个助手同时调查，再统一检查结果。并行的前提是任务之间不会相互修改或等待。",
+      "takeaway": "先划清任务边界和文件责任，再考虑并行。一个小 Skill 通常不需要这层；只有多个独立问题时才有收益。",
+      "notes": [
+        {
+          "match": "one agent per independent problem domain",
+          "label": "按独立问题分工",
+          "explanation": "问题域可以是一组测试、一个子系统。拆分标准是它们能否在不依赖其他调查的情况下理解和修复，而不是文件数越多就派越多助手。",
+          "blockId": "b0006"
+        },
+        {
+          "match": "digraph when_to_use",
+          "label": "这张图在检查能否并行",
+          "explanation": "图先问问题是否独立，再问是否共享状态。相关问题由一位助手一起调查，独立但会互相干扰则顺序执行，只有独立且无干扰的才并行。DOT 文本不自动调度任务。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "Specific scope:",
+          "label": "交接四件事",
+          "explanation": "每位助手得到范围、目标、限制和返回结果。明确“只处理这个测试文件”能减少乱改，明确报告原因和改动能让总控整合。",
+          "blockId": "b0016"
+        },
+        {
+          "match": "Issue all three subagent dispatches in the same response",
+          "label": "演示同时派发",
+          "explanation": "这里的 Subagent (general-purpose) 三行是伪代码式调用示意，表示一次派出三个独立任务。真正调用方式由宿主工具决定，复制到终端不会创建助手。",
+          "blockId": "b0018"
+        },
+        {
+          "match": "Do NOT just increase timeouts",
+          "label": "示例要求修原因",
+          "explanation": "任务提示先读测试，再分清是时序问题还是实现缺陷，改成事件驱动等待或修真实代码，而不是仅把超时时间调大掩盖问题。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "Do NOT change production code",
+          "label": "限制要针对任务",
+          "explanation": "这句话示范给测试修复者划定边界，防止顺手重构业务代码。不同任务限制不同，不能把示例当成所有子 Agent 都永远不许修改产品代码。",
+          "blockId": "b0029"
+        },
+        {
+          "match": "Shared state:",
+          "label": "共享状态会制造冲突",
+          "explanation": "同时改同一个文件、同一数据库或同一资源，即使任务标题不同也可能相互覆盖。是否并行要看真实影响范围，不只看描述是否不同。",
+          "blockId": "b0032"
+        },
+        {
+          "match": "Check for conflicts",
+          "label": "返回后还要整合验证",
+          "explanation": "总控需要读摘要、检查是否修改重叠、跑整套验证并抽查。子 Agent 的成功报告不能替代合起来真的可用。",
+          "blockId": "b0042"
+        },
+        {
+          "match": "Real Example from Session",
+          "label": "会话案例是作者的示范",
+          "explanation": "三种失败和修复结果帮助理解划分方法。它是文档中的经验案例，不是本学习页刚执行的测试，也不应写成网页制作的实测成果。",
+          "blockId": "b0033"
+        },
+        {
+          "match": "# Dispatching Parallel Agents",
+          "blockId": "b0002",
+          "zh": "# 派发多个独立任务",
+          "label": "方法名称",
+          "explanation": "把互不依赖的问题分别交给多个助手同时调查，再统一检查结果。并行的前提是任务之间不会相互修改或等待。"
+        }
+      ]
+    },
+    "skills/using-git-worktrees/SKILL.md": {
+      "intro": "在实现前确认工作是否已隔离，优先复用现有工作目录或平台原生能力，需要时才创建独立 Git 工作树。",
+      "takeaway": "借鉴“先检测已有条件，再创建”的设计，避免重复工作。制作简单 Skill 时可先在自己的目录编辑，不必强制搭建 worktree。",
+      "notes": [
+        {
+          "match": "Detect existing isolation first.",
+          "label": "不要重复创建隔离目录",
+          "explanation": "平台可能已经给了独立工作树，所以先检查，再选择原生工具，最后才手动用 Git。流程服务于实际环境，不应为了固定步骤制造第二层目录。",
+          "blockId": "b0005"
+        },
+        {
+          "match": "GIT_DIR=$(cd",
+          "label": "检测 Git 内部位置",
+          "explanation": "示例把 git-dir 和 git-common-dir 转为绝对路径比较；linked worktree 的工作目录专属 Git 目录与共享 Git 目录不同。BRANCH 用来报告当前分支或 detached HEAD。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "Submodule guard:",
+          "label": "子模块也会看起来不同",
+          "explanation": "子模块的两个 Git 路径也可能不同，所以必须用 show-superproject-working-tree 排除子模块，不能只凭不相等就认定是 worktree。",
+          "blockId": "b0010"
+        },
+        {
+          "match": "Honor any existing declared preference without asking.",
+          "label": "记住用户已有选择",
+          "explanation": "已经说过希望在哪个目录、是否隔离，就直接沿用。只有没有偏好时才问，避免反复让用户批准同一常规决定。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "Native Worktree Tools (preferred)",
+          "label": "原生工具拥有生命周期",
+          "explanation": "宿主工具知道目录、分支、附件和清理状态，优先让它管理。绕过宿主手动创建，可能让界面不知道这个工作树存在。",
+          "blockId": "b0020"
+        },
+        {
+          "match": "git check-ignore -q .worktrees",
+          "label": "先检查临时目录是否被忽略",
+          "explanation": "project-local worktree 放在仓库内时，需要 Git 忽略这层目录，防止把另一个完整工作树当普通文件提交。命令检测忽略状态，不会自动创建目录。",
+          "blockId": "b0035"
+        },
+        {
+          "match": "git worktree add \"$path\" -b \"$BRANCH_NAME\"",
+          "label": "创建独立检出",
+          "explanation": "命令为同一仓库新建工作目录和分支，随后切到该目录。LOCATION、BRANCH_NAME 是任务变量，要先有真实值；示例没有规定所有项目的目录名称。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "Sandbox fallback:",
+          "label": "权限不足时换可行方式",
+          "explanation": "源码给出沙箱不允许创建时就在当前目录工作并说明限制的回退。不能据此承诺任何被阻止的操作都能绕过；真实权限及宿主规则仍优先。",
+          "blockId": "b0040"
+        },
+        {
+          "match": "if [ -f package.json ]; then npm install; fi",
+          "label": "按项目类型准备依赖",
+          "explanation": "这些 if 根据 Node、Rust、Python、Go 的标志文件选择安装或构建命令。它们是常见示例，真实项目应核对已有安装方式和锁文件，并非所有命令都一起运行。",
+          "blockId": "b0043"
+        },
+        {
+          "match": "npm test / cargo test / pytest / go test ./...",
+          "label": "先测原本是否正常",
+          "explanation": "斜杠分隔表示按项目选择一个测试命令，不是一条可直接执行的 shell 命令。基线先通过，后面新增失败才更容易判断由哪次改动造成。",
+          "blockId": "b0046"
+        },
+        {
+          "match": "Detached HEAD:",
+          "label": "暂未绑定分支也能隔离",
+          "explanation": "detached HEAD 表示检出一个提交而不是命名分支，常见于外部管理的工作区。保存或发布改动时要处理分支名称，不代表代码丢失或检出出错。",
+          "blockId": "b0013"
+        },
+        {
+          "match": "# Using Git Worktrees",
+          "blockId": "b0002",
+          "zh": "# 使用独立 Git 工作树",
+          "label": "方法名称",
+          "explanation": "在实现前确认工作是否已隔离，优先复用现有工作目录或平台原生能力，需要时才创建独立 Git 工作树。"
+        }
+      ]
+    },
+    "skills/finishing-a-development-branch/SKILL.md": {
+      "intro": "实现完成后先验证，再让用户选择合并、创建评审请求或保留成果，并按工作区的归属决定是否清理。",
+      "takeaway": "借鉴“完成实现”和“对外整合”分开的边界。做自己的 Skill 时，先给出可检查的结果，发布、合并或删除另按用户授权执行。",
+      "notes": [
+        {
+          "match": "Verify tests → Detect environment → Present options",
+          "label": "收尾有明确顺序",
+          "explanation": "先有通过的测试证据，再判断当前是普通仓库、分支工作树或 detached HEAD，然后展示适合的选择。不是写完代码就自动合并发布。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "WORKTREE_PATH=$(git rev-parse --show-toplevel)",
+          "label": "在切换目录前保存位置",
+          "explanation": "后面的清理要从主仓库外部进行，所以先记住工作树路径和 Git 目录值。否则切了目录再计算，会把主仓库误当成待清理对象。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "The base branch is whatever this work forked from",
+          "label": "合并目标不能猜",
+          "explanation": "base branch 是本次工作实际从哪里分出来，可能不是 main。先从计划、会话或 upstream 确认，避免把正确代码合并到错误目标。",
+          "blockId": "b0016"
+        },
+        {
+          "match": "present exactly these 3 options",
+          "label": "常规完成菜单",
+          "explanation": "正常分支允许本地合并、推送并建 PR、原样保留。删除成果不是默认菜单项，源码只在用户明确要求丢弃时另走确认流程。",
+          "blockId": "b0018"
+        },
+        {
+          "match": "Reduced 2 options (no merge)",
+          "label": "detached HEAD 的选择更少",
+          "explanation": "外部管理的未命名检出不直接按普通本地分支合并，而是可以推送为新分支建 PR，或保留。菜单依据真实 Git 状态调整。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "git merge <feature-branch>",
+          "label": "本地合并后再验证",
+          "explanation": "示例先回主仓库和 base 分支，再拉取与合并，最后检查合并后的测试。单独功能分支通过，不保证与最新主分支组合后也通过。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "git push origin HEAD:refs/heads/<new-branch>",
+          "label": "给未命名检出一个远端分支",
+          "explanation": "这条注释示例把当前提交 HEAD 推成远端指定分支。new-branch 是真实分支名占位符；发布属于外部操作，应以用户实际选择和宿主权限为准。",
+          "blockId": "b0030"
+        },
+        {
+          "match": "Keep the worktree",
+          "label": "PR 后保留工作目录",
+          "explanation": "创建 PR 后还可能要根据审查意见修改，所以保留目录方便继续。不能为了“清爽”删掉用户还在使用的工作区。",
+          "blockId": "b0032"
+        },
+        {
+          "match": "Type 'discard' to confirm.",
+          "label": "丢弃是单独的破坏性路径",
+          "explanation": "源码要求先列清分支、提交和工作区，再收到 discard 的明确确认。这里解释该保护设计，网页不会因为展示命令就删除任何目录。",
+          "blockId": "b0037"
+        },
+        {
+          "match": "git branch -D <feature-branch>",
+          "label": "强制删分支与正常清理不同",
+          "explanation": "-d 通常只删除可安全处理的分支，-D 强制删除。强制操作只在明确丢弃路径里使用，不是上传 GitHub 或完成 Skill 的常规步骤。",
+          "blockId": "b0041"
+        },
+        {
+          "match": "Never `--force` on your own initiative.",
+          "label": "拒绝清理时先保护独有文件",
+          "explanation": "工作树含未提交或未跟踪文件时，强制移除可能丢掉唯一副本。先列出内容，让用户选保存、移动或删除；“清理失败”不是可以自行强制的理由。",
+          "blockId": "b0047"
+        },
+        {
+          "match": "The host environment owns this workspace",
+          "label": "根据归属清理",
+          "explanation": "本项目自建的本地工作树与宿主管理的工作区生命周期不同。自己的 Skill 可以借鉴只清理自己创建的临时资源，不清理看起来过时的别人的目录。",
+          "blockId": "b0051"
+        },
+        {
+          "match": "# Finishing a Development Branch",
+          "blockId": "b0002",
+          "zh": "# 完成开发分支与收尾",
+          "label": "方法名称",
+          "explanation": "实现完成后先验证，再让用户选择合并、创建评审请求或保留成果，并按工作区的归属决定是否清理。"
+        }
+      ]
+    },
+    "skills/systematic-debugging/SKILL.md": {
+      "intro": "面对 Bug 或测试失败，先重现和找证据，再提出单个假设，最后修根因并验证，避免靠猜反复试改。",
+      "takeaway": "把常见排错经验写成“证据→判断→最小试验→验证”，并设置反复失败后的停点，比列一堆可能修复更有帮助。",
+      "notes": [
+        {
+          "match": "NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST",
+          "label": "先查原因再改",
+          "explanation": "源码用强规则阻止“先换一个参数试试看”。它不是要求做复杂报告，而是至少知道失败怎样触发、数据在哪出错、为什么出错。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "Reproduce Consistently",
+          "label": "先有能重现的步骤",
+          "explanation": "如果每次结果不同，就先收集日志和环境差异，不能把一次没出现错误当成已修好。明确重现方式也能成为后面的回归测试。",
+          "blockId": "b0018"
+        },
+        {
+          "match": "For EACH component boundary:",
+          "label": "在交接边界观察",
+          "explanation": "API、服务、数据库，或 CI、构建、签名之间传递的数据和配置最容易丢失。分别看入口与出口，能把一个“大系统坏了”缩小成某个边界出问题。",
+          "blockId": "b0023"
+        },
+        {
+          "match": "IDENTITY: $([ -n",
+          "label": "签名诊断示例不直接显示秘密",
+          "explanation": "这一行用 -n 判断 IDENTITY 是否有值，只输出 SET 或 UNSET；下一层检查变量有没有传进环境，再看钥匙串和 codesign。目的在于定位配置传递在哪断了，示例命令仍需在真实环境考虑日志敏感性。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "codesign --sign \"$IDENTITY\"",
+          "label": "最后才执行真正签名",
+          "explanation": "命令示范在前面确认配置和身份后调用 macOS 签名工具。IDENTITY 与 APP 要是实际有效值，它不是本项目对所有平台都会执行的步骤。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "Where does bad value originate?",
+          "label": "沿调用链反向找源头",
+          "explanation": "底层报错可能只是上游传错数据的结果。顺着调用者回追，找到最初引入坏值的位置修，避免在每一层都补一个掩盖问题的判断。",
+          "blockId": "b0030"
+        },
+        {
+          "match": "Find Working Examples",
+          "label": "用项目中正常的实现作对照",
+          "explanation": "找相似且正常的代码，完整理解，再比较参数、环境和依赖差异。这样能利用已有约定，减少凭记忆套一个不适合的外部方案。",
+          "blockId": "b0033"
+        },
+        {
+          "match": "Form Single Hypothesis",
+          "label": "一次检验一个原因",
+          "explanation": "明确写“我认为 X 是根因，因为 Y”，只改能检验该假设的最小变量。一次改很多地方，即使好了也不知道哪处真正有效。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "Create Failing Test Case",
+          "label": "把真实故障变成可重复检查",
+          "explanation": "先用最简单的测试复现当前故障，再修根因，再确认通过且没有破坏其他测试。这把一次成功变成以后还能重复的验证。",
+          "blockId": "b0045"
+        },
+        {
+          "match": "If 3+ Fixes Failed: Question Architecture",
+          "label": "反复失败要重新看结构",
+          "explanation": "连续多个修复都引出别处问题，可能是共享状态或耦合模式不对。源码要求停止第四次盲试并讨论基础结构；三次是工作约定，不能把它当科学证明架构一定错误。",
+          "blockId": "b0049"
+        },
+        {
+          "match": "95% of \"no root cause\"",
+          "label": "这个百分比没有在文中给统计证据",
+          "explanation": "作者用 95% 强调很多“查不出原因”来自调查不完整，但这一段没有给数据来源或计算过程。学习时应把它当作者的强调表达，不当成经本页验证的统计事实。",
+          "blockId": "b0069"
+        },
+        {
+          "match": "Supporting Techniques",
+          "label": "深方法放在辅助文档",
+          "explanation": "root-cause-tracing 教回追源头，defense-in-depth 教修根因后的多层保护，condition-based-waiting 教按条件等而不是固定睡眠。主文件先给总流程，细节需要时再读。",
+          "blockId": "b0070"
+        },
+        {
+          "match": "# Systematic Debugging",
+          "blockId": "b0002",
+          "zh": "# 系统地定位和修复问题",
+          "label": "方法名称",
+          "explanation": "面对 Bug 或测试失败，先重现和找证据，再提出单个假设，最后修根因并验证，避免靠猜反复试改。"
+        }
+      ]
+    },
+    "skills/test-driven-development/SKILL.md": {
+      "intro": "先写能发现缺失行为的测试，亲眼看它失败，再写最少实现使其通过，最后整理代码。测试在这里先定义“应该发生什么”。",
+      "takeaway": "借鉴先验证再宣称的方法。写 Skill 时也可以先观察无指导的失败，再添加指导并检查是否改善；不必把所有编程测试术语照搬进新手界面。",
+      "notes": [
+        {
+          "match": "If you didn't watch the test fail",
+          "label": "测试也需要证明能抓到问题",
+          "explanation": "已有实现上测试直接通过，可能只是测了已经存在的行为。先因目标功能缺失而失败，才能证明它会在该行为坏掉时报警。",
+          "blockId": "b0005"
+        },
+        {
+          "match": "Exceptions (ask your human partner)",
+          "label": "正文列出例外类别",
+          "explanation": "临时试做、生成代码、配置文件可按用户选择处理。后面的“无例外”针对违背所选 TDD 过程后找借口的行为，不宜截取成所有文件都必须写单元测试的普遍要求。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "digraph tdd_cycle",
+          "label": "红绿整理循环",
+          "explanation": "RED 写测试，确认因为正确原因失败；GREEN 写最少实现，确认通过；REFACTOR 整理重复或名称并保持通过。图里的箭头描述判断顺序，不是自动执行测试的程序。",
+          "blockId": "b0017"
+        },
+        {
+          "match": "test('retries failed operations 3 times'",
+          "label": "示例实际验证三次尝试",
+          "explanation": "operation 计数，前两次抛错，第三次返回 success；断言结果与 attempts=3。因此这里是总共三次尝试，其中两次重试，而不是初次之外又重试三次，英文标题容易让人误会。",
+          "blockId": "b0021"
+        },
+        {
+          "match": "const mock = jest.fn()",
+          "label": "坏例子关注了替身调用次数",
+          "explanation": "mock 是测试替身，设置前两次失败第三次成功，然后只数调用次数。作者偏好同时检查真实输出与行为；并非所有使用 mock 的测试都无效，无法替代的外部依赖仍可合理模拟。",
+          "blockId": "b0024"
+        },
+        {
+          "match": "Test fails (not errors)",
+          "label": "失败原因必须与目标有关",
+          "explanation": "断言不满足才说明缺失行为被抓到。语法、导入或路径错误使测试跑不起来，这属于测试环境问题，不能当作 RED 完成。",
+          "blockId": "b0030"
+        },
+        {
+          "match": "async function retryOperation<T>(fn: () => Promise<T>)",
+          "label": "最少实现逐行含义",
+          "explanation": "T 是结果类型；循环最多调用三次，成功立刻返回，前两次异常继续，第三次异常原样抛出。最后的 unreachable 是让类型检查知道函数不会默默返回 undefined。",
+          "blockId": "b0036"
+        },
+        {
+          "match": "maxRetries?: number;",
+          "label": "过度设计反例",
+          "explanation": "maxRetries、退避策略和 onRetry 增加了配置能力，但当前测试没有要求它们。先把确定需求做对，只有新测试和真实需求出现时再扩展。",
+          "blockId": "b0039"
+        },
+        {
+          "match": "Other tests\" means the project's suite",
+          "label": "单个测试绿不等于整体绿",
+          "explanation": "修改可能影响其他功能，所以完成前还要跑项目的整套测试。已有失败也要按名报告，不能因为不是自己引入就悄悄忽略。",
+          "blockId": "b0048"
+        },
+        {
+          "match": "After green only:",
+          "label": "整理不新增行为",
+          "explanation": "通过后才消除重复、改善名称、抽助手函数，并继续保持测试绿。加入新功能应先有新测试，不把“整理”当成扩大需求的理由。",
+          "blockId": "b0050"
+        },
+        {
+          "match": "test('rejects empty email'",
+          "label": "空邮箱用例锁定 Bug",
+          "explanation": "测试传入空字符串，要求返回 Email required。修复示例用可选链与 trim 拒绝缺失、空白或空字符串，回归测试让这次错误以后不会悄悄回来。",
+          "blockId": "b0066"
+        },
+        {
+          "match": "if (!data.email?.trim())",
+          "label": "这个表达式判断空值",
+          "explanation": "email 不存在时 ?. 不报错而返回 undefined；存在时 trim 去掉两侧空白，空结果被 ! 判为真。FormData 是教学示例中的输入类型名，真实项目应定义自己的类型。",
+          "blockId": "b0070"
+        },
+        {
+          "match": "Must mock everything",
+          "label": "测试困难能暴露耦合",
+          "explanation": "如果必须模拟所有东西才能测试，功能可能太依赖外部对象。源码建议考虑依赖注入或简化接口，而不是为方便测试往生产对象里塞很多测试专用开关。",
+          "blockId": "b0079"
+        },
+        {
+          "match": "# Test-Driven Development (TDD)",
+          "blockId": "b0002",
+          "zh": "# 测试驱动开发（TDD）",
+          "label": "方法名称",
+          "explanation": "先写能发现缺失行为的测试，亲眼看它失败，再写最少实现使其通过，最后整理代码。测试在这里先定义“应该发生什么”。"
+        }
+      ]
+    },
+    "skills/verification-before-completion/SKILL.md": {
+      "intro": "在说“完成、通过、修好了”之前，先运行能证明这句话的检查，并读真实输出。强调报告与证据对应。",
+      "takeaway": "给自己的 Skill 增加一条清楚的完成标准：检查什么、什么结果算成功、失败时怎样说明。比只写“保证质量”更可执行。",
+      "notes": [
+        {
+          "match": "Evidence before claims, always.",
+          "label": "先有证据再报结果",
+          "explanation": "看起来正确、以前通过过、另一个助手说成功，都不能代替当前版本的实际验证。完成报告应该说明检查了什么以及真实结果。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "## The Gate Function",
+          "label": "这里的 function 是流程比喻",
+          "explanation": "下面的 IDENTIFY→RUN→READ→VERIFY→CLAIM 是伪代码式检查清单，不是一段真的程序函数。它教助手先找证据，再决定能说多强的结论。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "Build command: exit 0",
+          "label": "每种结论需要对应检查",
+          "explanation": "lint 只查一部分规范，不能证明编译或构建成功；测试通过也不自动代表需求全覆盖。根据声明选择准确的验证，避免从小范围结果外推。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "Test original symptom: passes",
+          "label": "修 Bug 要重测原症状",
+          "explanation": "只证明代码改了，不代表用户原本的问题消失。用先前的复现步骤或回归测试检查同一场景，才与“已修复”的结论对应。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "Write → Run (pass) → Revert fix",
+          "label": "回归测试也要能识别修复前状态",
+          "explanation": "这个示例先有测试通过，再临时撤掉修复确认失败，恢复修复确认通过，用来证明测试抓得住 Bug。它是另一种回归验证演练，不等于授权读者覆盖未提交代码。",
+          "blockId": "b0023"
+        },
+        {
+          "match": "VCS diff shows changes",
+          "label": "核对委派结果",
+          "explanation": "VCS 指版本控制系统。看真实差异、再做对应检查，能确认子 Agent 改了哪些内容；报告里的“success”本身不是证据。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "Line-by-line checklist",
+          "label": "需求检查与测试各有作用",
+          "explanation": "测试只能证明测到的行为。仍需逐条对照需求，例如布局、下载文件或语言显示；页面功能全量覆盖不能只靠一个构建通过声称。",
+          "blockId": "b0013"
+        },
+        {
+          "match": "in this message",
+          "label": "“新证据”是本项目严格表达",
+          "explanation": "源码要求在当前回复前有新运行的检查，防止沿用旧结果。本学习页解释它的目的，不替宿主规定所有低风险改动都要重复整套耗时验证。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "# Verification Before Completion",
+          "blockId": "b0002",
+          "zh": "# 声明完成之前先验证",
+          "label": "方法名称",
+          "explanation": "在说“完成、通过、修好了”之前，先运行能证明这句话的检查，并读真实输出。强调报告与证据对应。"
+        }
+      ]
+    },
+    "skills/requesting-code-review/SKILL.md": {
+      "intro": "教总控怎样给审查助手准备足够的需求与代码差异，让它找出遗漏和问题，再按影响程度处理反馈。",
+      "takeaway": "借鉴“要求＋实际成果＋准确审查范围”的交接。写自己的 Skill 时，如果有审查步骤，也要说明审什么和怎样处理意见。",
+      "notes": [
+        {
+          "match": "Dispatch a code reviewer subagent to catch issues before they cascade.",
+          "label": "给审查者成果与依据",
+          "explanation": "审查需要需求和差异，不需要作者全部思考过程。避免带太多历史也能减少先入为主，让审查者看最终行为是否合理。",
+          "blockId": "b0003"
+        },
+        {
+          "match": "After each task in subagent-driven development",
+          "label": "什么时候审查取决于执行器",
+          "explanation": "子 Agent 驱动方式逐任务审查，重大功能和合并前也要审查；inline 执行器的具体规则是末尾整体审查。应联合阅读对应执行 Skill，不能把这里理解成所有执行方式逐任务都新派审查者。",
+          "blockId": "b0006"
+        },
+        {
+          "match": "BASE_SHA=$(git rev-parse HEAD~1)",
+          "label": "示例审最近提交，完整任务需更早基点",
+          "explanation": "HEAD~1 适用于只审最近一次提交的场景。一个任务多次提交时，两个执行器都要求使用任务开始时记录的 BASE；否则会漏掉前面的改动。",
+          "blockId": "b0010"
+        },
+        {
+          "match": "git merge-base origin/main HEAD",
+          "label": "查看共同祖先",
+          "explanation": "merge-base 找当前分支和 origin/main 的共同祖先，常用于整个分支的审查范围。远端名称、目标分支要按真实仓库选择，不保证总叫 origin/main。",
+          "blockId": "b0010"
+        },
+        {
+          "match": "{PLAN_OR_REQUIREMENTS}",
+          "label": "占位符是交接资料槽",
+          "explanation": "DESCRIPTION 说做了什么，PLAN_OR_REQUIREMENTS 说应该怎样，BASE_SHA 与 HEAD_SHA 定义差异区间。填真实值后让模板形成具体审查任务，不能把占位符原样当需求。",
+          "blockId": "b0013"
+        },
+        {
+          "match": "Fix Critical issues immediately",
+          "label": "按影响而非条数处理",
+          "explanation": "Critical 是严重问题，Important 是重要问题，Minor 是轻微建议。先处理会伤害正确性或整合的问题，小建议记录待办；审查标签也需要结合真实后果判断。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "Push back if reviewer is wrong",
+          "label": "意见可以核实与反驳",
+          "explanation": "独立审查者也可能缺背景。正确做法是用代码、测试与需求证明结论，而不是因为对方是 reviewer 就盲改，或因为自己写的就一律拒绝。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "BASE_SHA=$(git log --oneline",
+          "label": "示范如何找到起点",
+          "explanation": "示例从提交信息中找 Task 1 的提交号，作为 Task 2 的起点。依赖提交信息文本有局限，更稳的执行流程是在任务开始前明确保存 BASE，网页不把此管道作为通用可靠自动方案。",
+          "blockId": "b0016"
+        },
+        {
+          "match": "# Requesting Code Review",
+          "blockId": "b0002",
+          "zh": "# 请求代码审查",
+          "label": "方法名称",
+          "explanation": "教总控怎样给审查助手准备足够的需求与代码差异，让它找出遗漏和问题，再按影响程度处理反馈。"
+        }
+      ]
+    },
+    "skills/receiving-code-review/SKILL.md": {
+      "intro": "收到审查意见后，先理解、核对代码和需求，再决定修复或给出有依据的反驳，避免为了表示赞同而随意修改。",
+      "takeaway": "给反馈处理写明验证与优先级，保留不知道或不赞同的表达空间。无需照搬文中的所有语言禁令，重点是技术判断先于表态。",
+      "notes": [
+        {
+          "match": "Technical correctness over social comfort.",
+          "label": "重点是核实内容",
+          "explanation": "礼貌表态不能代替判断建议是否符合当前代码。先读完整反馈、理解、验证，再回复与实施，减少为了迎合审查而引入的新错误。",
+          "blockId": "b0005"
+        },
+        {
+          "match": "1. READ: Complete feedback without reacting",
+          "label": "这段是处理反馈的清单",
+          "explanation": "READ→UNDERSTAND→VERIFY→EVALUATE→RESPOND→IMPLEMENT 是伪代码式流程文字，不是运行的脚本。它让助手一次处理一个已理解的问题并单独验证。",
+          "blockId": "b0007"
+        },
+        {
+          "match": "IF any item is unclear:",
+          "label": "相关问题先一起弄清",
+          "explanation": "示例认为 1–6 项可能相互影响，所以对 4、5 有疑问时先问清，而不是先改其余造成返工。实际使用应结合条目是否独立及会话已有授权，别把它翻译成永远不能做任何独立工作。",
+          "blockId": "b0012"
+        },
+        {
+          "match": "Works on all platforms/versions?",
+          "label": "反馈要贴合真实兼容要求",
+          "explanation": "看似更现代的 API 可能只在新版本可用。核对项目支持平台与版本、已有逻辑的原因，才能知道应替换还是保留兼容分支。",
+          "blockId": "b0019"
+        },
+        {
+          "match": "grep codebase for actual usage",
+          "label": "先确认增强功能是否真需要",
+          "explanation": "这段示例查某个接口有没有实际调用，再决定是否投入复杂指标系统。grep 是演示搜索工具，不是 Skill 必須包含的固定脚本；YAGNI 仍需真实需求和授权。",
+          "blockId": "b0022"
+        },
+        {
+          "match": "Blocking issues (breaks, security)",
+          "label": "按影响安排修复",
+          "explanation": "先处理阻塞或安全问题，再做简单和复杂修复，逐个测试，避免把很多改动混在一起后无法判断哪处引起回归。",
+          "blockId": "b0025"
+        },
+        {
+          "match": "ANY gratitude expression",
+          "label": "这是项目自己的回复风格",
+          "explanation": "源码禁止泛泛夸赞或感谢，要求直接说明修复和证据。这是作者为减少表演式赞同设定的强风格，不是审查的普遍礼仪，也不要求网页读者照搬日常说话方式。",
+          "blockId": "b0032"
+        },
+        {
+          "match": "build target is 10.15+, this API needs 13+",
+          "label": "保留旧逻辑需要具体依据",
+          "explanation": "示例核实支持 macOS 10.15+，新 API 却要 13+，所以不能直接删兼容逻辑。这些数值是教学场景，不是 Superpowers 仓库的真实平台支持声明。",
+          "blockId": "b0046"
+        },
+        {
+          "match": "## GitHub Thread Replies",
+          "label": "评论要落在对应位置",
+          "explanation": "源码建议对某条行内审查回复时，用该评论线程的 replies 接口，避免把回复丢成 PR 顶层新评论。发送是外部沟通行为，必须按用户实际授权；网页只展示说明不代发消息。",
+          "blockId": "b0051"
+        },
+        {
+          "match": "# Code Review Reception",
+          "blockId": "b0002",
+          "zh": "# 接收并核实审查反馈",
+          "label": "方法名称",
+          "explanation": "收到审查意见后，先理解、核对代码和需求，再决定修复或给出有依据的反驳，避免为了表示赞同而随意修改。"
+        }
+      ]
+    },
+    "skills/diagnosing-superpowers/SKILL.md": {
+      "intro": "当一次 Superpowers 会话出现重复工作、忽视计划或成本异常时，收集真实会话证据并形成报告，帮助维护者判断原因。",
+      "takeaway": "借鉴证据、来源和隐私边界。它是一项高级排查能力，写第一个 Skill 时不必配会话分析器、导出包和多个分析角色。",
+      "notes": [
+        {
+          "match": "You report;\nyou do not diagnose superpowers.",
+          "label": "报告事实，原因归维护者判断",
+          "explanation": "名称有 diagnosing，但正文明确限制：记录发生了什么及涉及哪里，不自行宣布某个 Skill 有缺陷或直接给修复建议。学习时要以正文定义的职责为准。",
+          "blockId": "b0004"
+        },
+        {
+          "match": "Every finding cites `path:line`.",
+          "label": "结论能回到原始证据",
+          "explanation": "每个发现有文件路径与行号，每个数值来自会话或执行的检查。这样别人能复核，避免凭记忆猜 token、时间或因果。",
+          "blockId": "b0005"
+        },
+        {
+          "match": "Problem intake.",
+          "label": "先把抱怨变成可观察问题",
+          "explanation": "“太慢了”需要补成哪次会话、期待什么、实际怎样、关心用时还是重复行为。目的在于限定分析范围，而不是一上来扫描所有日志。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "session-discovery.md",
+          "label": "跨平台会话位置按资料查",
+          "explanation": "不同宿主的日志路径和结构不同，辅助 reference 负责定位方法。主文件只描述总流程，这种拆分避免让入口充满所有平台细节。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "All seven analysts always run.",
+          "label": "按七个维度交叉观察",
+          "explanation": "skill 时间线、计划遵循、重复工作、卡顿、质量证据、请求冲突、成本时间，是并行的分析视角。不同抱怨影响先读什么和报告重点，不代表只看一个维度。",
+          "blockId": "b0011"
+        },
+        {
+          "match": "No citation, no\nfinding.",
+          "label": "返回内容也要过滤",
+          "explanation": "子 Agent 的结论没有精确来源就丢弃，不因为它说得专业就直接写入报告。这个原则可以应用到自己的学习类或调研类 Skill。",
+          "blockId": "b0005"
+        },
+        {
+          "match": "GitHub issues",
+          "label": "对外提交单独确认",
+          "explanation": "先查是否已有同类问题，再准备完整 issue 文本给用户审核，批准后才创建。导出会话和发 issue 不是读日志时自动附带的动作。",
+          "blockId": "b0008"
+        },
+        {
+          "match": "skeleton (no tool-result bodies)",
+          "label": "导出深度影响隐私与证据",
+          "explanation": "skeleton 去掉工具结果正文，evidence 只保留被引用事件的正文，full 保留更多。用户按目标选深度，不能为了方便排查就默认打包全部会话。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "dispatch `prompts/scrub.md`",
+          "label": "脱敏与复核是两个角色",
+          "explanation": "先按 scrub 指导删除或替换敏感内容，再由独立 scrub-audit 检查，直到 CLEAN。脱敏不保证绝无遗漏，源码仍要求分享前人工审阅每个文件。",
+          "blockId": "b0009"
+        },
+        {
+          "match": "One transcript line can be a megabyte.",
+          "label": "长日志要控制读取范围",
+          "explanation": "一个 JSON 会话行可能非常大，普通逐行阅读也可能耗尽上下文，所以要遵守专门的 context-safety 方法。主文档把读取策略单独引用，减少重复。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "In a subagent transcript, \"user\" is the\n  parent agent.",
+          "label": "消息角色要区分来源",
+          "explanation": "子任务日志里的 user 可能是总控发给它的任务，而不是真人直接要求；hook、系统提醒和工具输出也不是用户意图。报告必须保留这种来源区别。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "Read-only.",
+          "label": "原日志是证据不能改",
+          "explanation": "排查只读原会话，报告与导出写到独立工作目录。这样即使脱敏版本删减了内容，也还有原始证据可以核对。",
+          "blockId": "b0014"
+        },
+        {
+          "match": "# Diagnosing Superpowers",
+          "blockId": "b0002",
+          "zh": "# 调查 Superpowers 会话表现",
+          "label": "方法名称",
+          "explanation": "当一次 Superpowers 会话出现重复工作、忽视计划或成本异常时，收集真实会话证据并形成报告，帮助维护者判断原因。"
+        }
+      ]
+    }
+  },
+  "glossary": [
+    {
+      "term": "Skill",
+      "zh": "可复用工作方法",
+      "meaning": "通常由 SKILL.md 描述使用条件、步骤和验证方法，必要时附参考、脚本或资源。它是指导助手做事的资料包。"
+    },
+    {
+      "term": "frontmatter",
+      "zh": "文件头部元信息",
+      "meaning": "Markdown 顶部两组三横线之间的 YAML，包含名称、描述等字段，用于发现和识别 Skill。"
+    },
+    {
+      "term": "description",
+      "zh": "简短描述／触发说明",
+      "meaning": "助手用它判断是否该读正文。Superpowers 特别强调只写何时用；通用格式和其他项目的策略需要另行核对。"
+    },
+    {
+      "term": "harness",
+      "zh": "助手运行环境",
+      "meaning": "例如提供工具、会话、权限和插件加载的宿主程序。Skill 文档本身并不提供这些底层能力。"
+    },
+    {
+      "term": "spec",
+      "zh": "需求或设计说明",
+      "meaning": "记录要做什么、给谁用、有什么限制，是实施计划判断对错的依据。"
+    },
+    {
+      "term": "plan",
+      "zh": "实施计划",
+      "meaning": "把需求拆成可交付、可验证的任务，写清必要接口和测试。"
+    },
+    {
+      "term": "brief",
+      "zh": "单个任务的准确说明",
+      "meaning": "从计划提取的当前任务内容，减少子 Agent 读取无关背景。"
+    },
+    {
+      "term": "ledger",
+      "zh": "进度账本",
+      "meaning": "保存在文件里的任务结果、提交范围、验证证据和重要决定，帮助上下文压缩后恢复。"
+    },
+    {
+      "term": "ruling",
+      "zh": "有记录的处理决定",
+      "meaning": "遇到冲突或不明确事项时，记录决定、原因及判错的影响，让用户能审查。"
+    },
+    {
+      "term": "inline / native execution",
+      "zh": "当前助手自己执行",
+      "meaning": "本会话逐任务连续实现，末尾整体审查，不逐任务更换实现者。"
+    },
+    {
+      "term": "subagent",
+      "zh": "分工助手",
+      "meaning": "由总控派发具体任务的另一位 AI 执行者；能力来自运行环境，写个 Markdown 文件不会自动创建它。"
+    },
+    {
+      "term": "worktree",
+      "zh": "独立 Git 工作目录",
+      "meaning": "同一仓库的独立检出，可隔离分支修改；不是另复制一套 Git 历史。"
+    },
+    {
+      "term": "TDD / RED-GREEN-REFACTOR",
+      "zh": "先测试，再实现，再整理",
+      "meaning": "先证明测试能捕捉缺失行为，再做最少实现使其通过，最后在通过的保障下整理代码。"
+    },
+    {
+      "term": "baseline",
+      "zh": "没有新增指导时的对照表现",
+      "meaning": "先观察原本的错误，才能比较 Skill 有没有解决问题。"
+    },
+    {
+      "term": "pressure scenario",
+      "zh": "压力测试场景",
+      "meaning": "让助手面对赶时间、沉没成本等诱惑，检查它是否仍遵守目标规则。"
+    },
+    {
+      "term": "DOT / Graphviz",
+      "zh": "流程图描述语言与绘图工具",
+      "meaning": "用节点和箭头描述关系，再渲染成图。图展示工作规则，本身不会调度助手执行。"
+    },
+    {
+      "term": "DRY",
+      "zh": "避免无意义重复",
+      "meaning": "共同的规则或资料只保留一个准确来源，减少更新时的不一致。"
+    },
+    {
+      "term": "YAGNI",
+      "zh": "暂时用不到，就先不加",
+      "meaning": "只做当前真实需求需要的功能，避免为想象的未来扩大范围。"
+    },
+    {
+      "term": "supporting files",
+      "zh": "按需配套文件",
+      "meaning": "正文过长的参考、可执行工具、模板或资源；没有这些需求时只保留 SKILL.md 即可。"
+    },
+    {
+      "term": "SDO",
+      "zh": "让 Skill 更容易被找到",
+      "meaning": "Superpowers 对命名、触发描述、关键词与分层资料的写作方法，不是一个必须运行的搜索服务。"
+    },
+    {
+      "term": "rationalization",
+      "zh": "为跳过规则找理由",
+      "meaning": "在本文中指助手为省略已要求的步骤辩解。作者用真实基线观察到的借口改进指导，不是精神医学诊断。"
+    },
+    {
+      "term": "review package",
+      "zh": "审查资料包",
+      "meaning": "在一个文件中汇集提交列表、差异摘要与完整上下文差异，交给审查者减少重复获取。"
+    },
+    {
+      "term": "Critical / Important / Minor",
+      "zh": "严重／重要／轻微",
+      "meaning": "审查意见的影响级别，帮助决定先修什么、哪些建议可以记录待处理；应根据实际行为和用户后果判断。"
+    },
+    {
+      "term": "superpowers:",
+      "zh": "项目命名空间前缀",
+      "meaning": "与后面的 Skill 名组成调用标识，例如 superpowers:test-driven-development。原标识需要保留，不能翻译成“超能力：”。"
+    }
+  ],
+  "guide": [
+    {
+      "title": "1. 先看 Skill 的最小组成",
+      "summary": "一个目录加 SKILL.md 就能表达一种可复用方法，参考资料和脚本按需要才添加。",
+      "files": [
+        "skills/writing-skills/SKILL.md"
+      ],
+      "exercise": "选一个经常重复的任务，写一句：什么时候应该使用这个方法？"
+    },
+    {
+      "title": "2. 学会写能触发的描述",
+      "summary": "名称让人识别，description 让助手判断是否该读正文，正文再解释步骤和判断标准。",
+      "files": [
+        "skills/using-superpowers/SKILL.md",
+        "skills/writing-skills/SKILL.md"
+      ],
+      "exercise": "为你的任务列出两个具体触发场景，删掉“强大、全面、智能”这类无法判断的形容词。"
+    },
+    {
+      "title": "3. 把方法写成短步骤",
+      "summary": "步骤要有可检查的结果，并写明哪些情况适用、哪些情况应跳过。",
+      "files": [
+        "skills/brainstorming/SKILL.md",
+        "skills/writing-plans/SKILL.md"
+      ],
+      "exercise": "写 3 个步骤，每一步附一句：怎样知道这一步做完了？"
+    },
+    {
+      "title": "4. 比较加入前后的表现",
+      "summary": "拿同一个实际任务比较没有指导和有指导的输出，先修最明显的缺口。",
+      "files": [
+        "skills/writing-skills/SKILL.md",
+        "skills/verification-before-completion/SKILL.md"
+      ],
+      "exercise": "记录基线出现的一个错误，再只增加能阻止这个错误的一条指导，重复同一个任务。"
+    },
+    {
+      "title": "5. 需要时再扩展框架",
+      "summary": "很多小 Skill 才需要总入口；跨平台才需要适配资料；复杂实现才考虑计划、脚本和子 Agent。",
+      "files": [
+        "skills/using-superpowers/SKILL.md",
+        "skills/executing-plans/SKILL.md",
+        "skills/subagent-driven-development/SKILL.md"
+      ],
+      "exercise": "给每个想添加的文件写一句用途；写不出真实用途的目录先不要创建。"
+    }
+  ]
+}
